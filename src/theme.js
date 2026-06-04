@@ -1,0 +1,28 @@
+export const THEME = {
+  dark: {
+    bg: "#080C12",
+    surface: "#0F1520",
+    surfaceHigh: "#161E2E",
+    border: "#1E2D45",
+    accent: "#00E5FF",
+    accentSoft: "rgba(0,229,255,0.12)",
+    accentGlow: "0 0 40px rgba(0,229,255,0.25)",
+    gold: "#F5C518",
+    text: "#E8F0FE",
+    muted: "#6B7E9F",
+    danger: "#FF4D6D",
+  },
+  light: {
+    bg: "#F0F4FF",
+    surface: "#FFFFFF",
+    surfaceHigh: "#E8EEF9",
+    border: "#C8D5ED",
+    accent: "#0062FF",
+    accentSoft: "rgba(0,98,255,0.10)",
+    accentGlow: "0 0 40px rgba(0,98,255,0.18)",
+    gold: "#D4A017",
+    text: "#0A1628",
+    muted: "#5A6E8C",
+    danger: "#E5193A",
+  },
+};
