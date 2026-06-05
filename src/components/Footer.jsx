@@ -3,8 +3,8 @@ import { Zap, Twitter, Linkedin, Github, Mail } from "lucide-react";
 const Footer = () => (
   <footer style={{ borderTop: "1px solid var(--border)", padding: "48px 24px 32px", background: "var(--surface)" }}>
     <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 40, marginBottom: 48 }}>
-        <div>
+      <div className="grid-footer" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 40, marginBottom: 48 }}>
+          <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Zap size={15} color="#000" strokeWidth={3} />
@@ -16,11 +16,11 @@ const Footer = () => (
           <p style={{ color: "var(--muted)", fontSize: "0.85rem", lineHeight: 1.7, maxWidth: 260 }}>
             CVs interactivos para profesionales modernos. Porque tu carrera merece más que un PDF estático.
           </p>
-          <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+          <div className="footer-social" style={{ display: "flex", gap: 12, marginTop: 20 }}>
             {[<Twitter size={16} />, <Linkedin size={16} />, <Github size={16} />, <Mail size={16} />].map((icon, i) => (
-              <a key={i} href="#" style={{ width: 36, height: 36, borderRadius: 9, border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", textDecoration: "none", transition: "border-color 0.18s, color 0.18s" }}
+              <a key={i} href="#" className="footer-social-link" style={{ width: 36, height: 36, borderRadius: 9, border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", textDecoration: "none", transition: "border-color 0.18s, color 0.18s" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}>
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)" }}>
                 {icon}
               </a>
             ))}
@@ -45,9 +45,9 @@ const Footer = () => (
           </div>
         ))}
       </div>
-      <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <span style={{ color: "var(--muted)", fontSize: "0.8rem" }}>© 2025 CViva. Hecho con <span style={{ color: "var(--danger)" }}>♥</span> en Colombia.</span>
-        <span style={{ color: "var(--muted)", fontSize: "0.8rem" }}>Powered by Vite + React</span>
+      <div className="footer-bottom" style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <span className="footer-copy" style={{ color: "var(--muted)", fontSize: "0.8rem" }}>© 2025 CViva. Hecho con <span style={{ color: "var(--danger)" }}>♥</span> en Colombia.</span>
+        <span className="footer-powered" style={{ color: "var(--muted)", fontSize: "0.8rem" }}>Powered by Vite + React</span>
       </div>
     </div>
   </footer>

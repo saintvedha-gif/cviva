@@ -51,9 +51,9 @@ const CVMockup = () => (
 const Hero = () => (
   <section id="hero" style={{ position: "relative", overflow: "hidden", padding: "140px 24px 100px", minHeight: "100vh", display: "flex", alignItems: "center" }}>
     <div className="grid-bg" style={{ position: "absolute", inset: 0, opacity: 0.35 }} />
-    <div style={{ position: "absolute", top: "15%", left: "10%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%)", filter: "blur(60px)", pointerEvents: "none" }} />
-    <div style={{ position: "absolute", bottom: "10%", right: "8%", width: 380, height: 380, borderRadius: "50%", background: "radial-gradient(circle, color-mix(in srgb, var(--gold) 12%, transparent), transparent 70%)", filter: "blur(60px)", pointerEvents: "none" }} />
-    <div style={{ maxWidth: 1180, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
+    <div className="hero-deco hero-deco-top" style={{ position: "absolute", top: "15%", left: "10%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%)", filter: "blur(60px)", pointerEvents: "none" }} />
+    <div className="hero-deco hero-deco-bottom" style={{ position: "absolute", bottom: "10%", right: "8%", width: 380, height: 380, borderRadius: "50%", background: "radial-gradient(circle, color-mix(in srgb, var(--gold) 12%, transparent), transparent 70%)", filter: "blur(60px)", pointerEvents: "none" }} />
+    <div className="hero-grid" style={{ maxWidth: 1180, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
       <div>
         <div className="fade-up d1">
           <span className="tag"><Sparkles size={10} /> Launching MVP</span>
@@ -65,7 +65,7 @@ const Hero = () => (
         <p className="fade-up d3" style={{ fontSize: "1.15rem", color: "var(--muted)", maxWidth: 460, lineHeight: 1.7, marginBottom: 40 }}>
           Transforma tu hoja de vida estática en un CV interactivo, filtrable y descargable. Conecta con reclutadores de forma única.
         </p>
-        <div className="fade-up d4" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+        <div className="fade-up d4 hero-cta" style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "flex-start" }}>
           <a href="#pricing" className="btn-primary">Crear mi CV <ArrowRight size={16} /></a>
           <a href="#demo" className="btn-ghost"><Play size={15} fill="currentColor" /> Ver demo</a>
         </div>

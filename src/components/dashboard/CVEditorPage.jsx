@@ -1,13 +1,13 @@
 // src/components/dashboard/CVEditorPage.jsx
 import { useState } from "react";
-import { Plus, Trash2, Save, Eye, Upload, User, Briefcase, GraduationCap, Wrench, FileText } from "lucide-react";
+import { Plus, Trash2, Save, Eye, User, Briefcase, GraduationCap, Wrench, FileText } from "lucide-react";
 import ExportModal from "./ExportModal";
 
 const TABS = [
-  { id: "info",       label: "Información",  icon: User },
-  { id: "experience", label: "Experiencia",  icon: Briefcase },
-  { id: "education",  label: "Educación",    icon: GraduationCap },
-  { id: "skills",     label: "Habilidades",  icon: Wrench },
+  { id: "info",       label: "Info",        icon: User },
+  { id: "experience", label: "Experiencia", icon: Briefcase },
+  { id: "education",  label: "Educación",   icon: GraduationCap },
+  { id: "skills",     label: "Skills",      icon: Wrench },
 ];
 
 const Field = ({ label, value, onChange, placeholder, type = "text", multiline = false }) => (
@@ -26,6 +26,7 @@ const Field = ({ label, value, onChange, placeholder, type = "text", multiline =
           borderRadius: 10, padding: "10px 14px", color: "var(--text)",
           fontFamily: "DM Sans,sans-serif", fontSize: "0.88rem", resize: "vertical",
           outline: "none", transition: "border-color 0.18s", lineHeight: 1.6,
+          width: "100%",
         }}
         onFocus={e => e.target.style.borderColor = "var(--accent)"}
         onBlur={e => e.target.style.borderColor = "var(--border)"}
@@ -41,6 +42,7 @@ const Field = ({ label, value, onChange, placeholder, type = "text", multiline =
           borderRadius: 10, padding: "10px 14px", color: "var(--text)",
           fontFamily: "DM Sans,sans-serif", fontSize: "0.88rem",
           outline: "none", transition: "border-color 0.18s",
+          width: "100%",
         }}
         onFocus={e => e.target.style.borderColor = "var(--accent)"}
         onBlur={e => e.target.style.borderColor = "var(--border)"}
@@ -56,6 +58,7 @@ export default function CVEditorPage() {
   const [activeTab, setActiveTab] = useState("info");
   const [showExport, setShowExport] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const [info, setInfo] = useState({
     name: "", role: "", email: "", phone: "", location: "", linkedin: "", summary: "",
@@ -72,7 +75,6 @@ export default function CVEditorPage() {
   };
 
   const handleSave = () => {
-    // Sprint 4: persist to Supabase
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -86,25 +88,26 @@ export default function CVEditorPage() {
   const removeEdu = (id) => setEducation(prev => prev.filter(e => e.id !== id));
 
   return (
-    <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
+    <div className="cv-editor-layout">
 
       {/* ── Editor panel ── */}
-      <div style={{ flex: "1 1 480px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+      <div className="cv-editor-panel" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 5, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 5, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 5, flexWrap: "wrap" }}>
           {TABS.map(({ id, label, icon: Icon }) => {
             const active = activeTab === id;
             return (
               <button key={id} onClick={() => setActiveTab(id)} style={{
                 display: "flex", alignItems: "center", gap: 6,
-                padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer",
                 background: active ? "var(--accent)" : "transparent",
                 color: active ? "#000" : "var(--muted)",
-                fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.8rem",
-                transition: "all 0.18s", whiteSpace: "nowrap",
+                fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.78rem",
+                transition: "all 0.18s", whiteSpace: "nowrap", flex: "1 1 auto",
+                justifyContent: "center",
               }}>
-                <Icon size={14} /> {label}
+                <Icon size={13} /> {label}
               </button>
             );
           })}
@@ -112,11 +115,11 @@ export default function CVEditorPage() {
 
         {/* Tab: Info */}
         {activeTab === "info" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20 }}>
             <h3 style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", margin: 0 }}>
               Información personal
             </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
               <Field label="Nombre completo" value={info.name} onChange={v => setInfo(p => ({ ...p, name: v }))} placeholder="Juan Pérez" />
               <Field label="Cargo / Rol" value={info.role} onChange={v => setInfo(p => ({ ...p, role: v }))} placeholder="Full Stack Developer" />
               <Field label="Email" value={info.email} onChange={v => setInfo(p => ({ ...p, email: v }))} placeholder="juan@email.com" type="email" />
@@ -146,7 +149,7 @@ export default function CVEditorPage() {
                     </button>
                   )}
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
                   <Field label="Empresa" value={exp.company} onChange={v => updateExp(exp.id, "company", v)} placeholder="Google" />
                   <Field label="Período" value={exp.period} onChange={v => updateExp(exp.id, "period", v)} placeholder="2022 - Presente" />
                 </div>
@@ -159,7 +162,7 @@ export default function CVEditorPage() {
               padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)",
               background: "transparent", color: "var(--muted)", cursor: "pointer",
               fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.85rem",
-              transition: "border-color 0.18s, color 0.18s",
+              transition: "border-color 0.18s, color 0.18s", width: "100%",
             }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
@@ -187,7 +190,7 @@ export default function CVEditorPage() {
                     </button>
                   )}
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
                   <Field label="Institución" value={edu.institution} onChange={v => updateEdu(edu.id, "institution", v)} placeholder="Universidad Nacional" />
                   <Field label="Período" value={edu.period} onChange={v => updateEdu(edu.id, "period", v)} placeholder="2018 - 2022" />
                 </div>
@@ -199,7 +202,7 @@ export default function CVEditorPage() {
               padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)",
               background: "transparent", color: "var(--muted)", cursor: "pointer",
               fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.85rem",
-              transition: "border-color 0.18s, color 0.18s",
+              transition: "border-color 0.18s, color 0.18s", width: "100%",
             }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
@@ -211,7 +214,7 @@ export default function CVEditorPage() {
 
         {/* Tab: Skills */}
         {activeTab === "skills" && (
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
             <h3 style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", margin: 0 }}>
               Habilidades
             </h3>
@@ -259,11 +262,23 @@ export default function CVEditorPage() {
           >
             <FileText size={15} /> Exportar
           </button>
+
+          {/* Mobile preview toggle */}
+          <button onClick={() => setShowPreview(p => !p)} className="preview-toggle-btn" style={{
+            flex: 1, minWidth: 120, display: "none", alignItems: "center", justifyContent: "center", gap: 8,
+            padding: "12px 20px", borderRadius: 10, cursor: "pointer",
+            background: showPreview ? "var(--accent-soft)" : "transparent", color: showPreview ? "var(--accent)" : "var(--muted)",
+            border: "1.5px solid var(--border)",
+            fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem",
+            transition: "all 0.18s",
+          }}>
+            <Eye size={15} /> {showPreview ? "Ocultar preview" : "Ver preview"}
+          </button>
         </div>
       </div>
 
       {/* ── Live preview ── */}
-      <div style={{ flex: "0 0 340px", position: "sticky", top: 88 }}>
+      <div className={`cv-preview-panel${showPreview ? " preview-visible" : ""}`}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <Eye size={14} color="var(--accent)" />
           <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.82rem", color: "var(--muted)" }}>
@@ -279,11 +294,18 @@ export default function CVEditorPage() {
         cvData={cvData}
         previewElementId="cv-preview"
       />
+
+      <style>{`
+        @media (max-width: 768px) {
+          .preview-toggle-btn { display: flex !important; }
+          .cv-preview-panel { display: none; width: 100% !important; }
+          .cv-preview-panel.preview-visible { display: block !important; }
+        }
+      `}</style>
     </div>
   );
 }
 
-// ── Inline preview component ──
 function CVPreview({ cvData }) {
   const { name, role, email, phone, location, linkedin, summary, experience, education, skills } = cvData;
   return (
@@ -292,7 +314,6 @@ function CVPreview({ cvData }) {
       padding: 24, fontSize: "0.78rem", color: "var(--text)", lineHeight: 1.6,
       maxHeight: "calc(100vh - 160px)", overflowY: "auto",
     }}>
-      {/* Header */}
       <div style={{ marginBottom: 18, paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
         <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1.4rem", color: "var(--accent)", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
           {name || "Tu nombre"}
@@ -305,17 +326,9 @@ function CVPreview({ cvData }) {
           {linkedin && <span style={{ color: "var(--accent)" }}>{linkedin}</span>}
         </div>
       </div>
-
-      {/* Summary */}
-      {summary && (
-        <Section title="Perfil">
-          <p style={{ margin: 0, color: "var(--muted)" }}>{summary}</p>
-        </Section>
-      )}
-
-      {/* Experience */}
+      {summary && <PreviewSection title="Perfil"><p style={{ margin: 0, color: "var(--muted)" }}>{summary}</p></PreviewSection>}
       {experience?.some(e => e.company) && (
-        <Section title="Experiencia">
+        <PreviewSection title="Experiencia">
           {experience.filter(e => e.company).map(exp => (
             <div key={exp.id} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4 }}>
@@ -326,12 +339,10 @@ function CVPreview({ cvData }) {
               <div style={{ color: "var(--muted)" }}>{exp.description}</div>
             </div>
           ))}
-        </Section>
+        </PreviewSection>
       )}
-
-      {/* Education */}
       {education?.some(e => e.institution) && (
-        <Section title="Educación">
+        <PreviewSection title="Educación">
           {education.filter(e => e.institution).map(edu => (
             <div key={edu.id} style={{ marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4 }}>
@@ -341,37 +352,25 @@ function CVPreview({ cvData }) {
               <div style={{ color: "var(--muted)" }}>{edu.degree}</div>
             </div>
           ))}
-        </Section>
+        </PreviewSection>
       )}
-
-      {/* Skills */}
       {skills?.length > 0 && (
-        <Section title="Habilidades">
+        <PreviewSection title="Habilidades">
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {skills.map((s, i) => (
-              <span key={i} style={{
-                padding: "3px 10px", borderRadius: 100, fontSize: "0.7rem",
-                background: "var(--accent-soft)", color: "var(--accent)",
-                border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
-                fontFamily: "Syne,sans-serif", fontWeight: 700,
-              }}>{s}</span>
+              <span key={i} style={{ padding: "3px 10px", borderRadius: 100, fontSize: "0.7rem", background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)", fontFamily: "Syne,sans-serif", fontWeight: 700 }}>{s}</span>
             ))}
           </div>
-        </Section>
+        </PreviewSection>
       )}
     </div>
   );
 }
 
-function Section({ title, children }) {
+function PreviewSection({ title, children }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{
-        fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.72rem",
-        color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase",
-        marginBottom: 8, paddingBottom: 4,
-        borderBottom: "1px solid var(--border)",
-      }}>
+      <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.72rem", color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, paddingBottom: 4, borderBottom: "1px solid var(--border)" }}>
         {title}
       </div>
       {children}
