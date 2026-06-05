@@ -27,6 +27,7 @@ import CVEditorPage from "./components/dashboard/CVEditorPage";
 import CVPreviewPage from "./components/dashboard/CVPreviewPage";
 import AnalyticsPage from "./components/dashboard/AnalyticsPage";
 import SettingsPage from "./components/dashboard/SettingsPage";
+import InteractiveCVPage from "./components/cv/InteractiveCVPage";
 
 const LandingPage = ({ mode, toggleMode }) => (
   <>
@@ -64,6 +65,8 @@ export default function App() {
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+
+          <Route path="/cv/:slug" element={<InteractiveCVPage />} />
 
           <Route path="/dashboard" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Dashboard">
