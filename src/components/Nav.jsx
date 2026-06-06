@@ -82,77 +82,94 @@ const Nav = ({ mode, toggleMode }) => {
       </nav>
 
       {/* Mobile menu — fullscreen overlay */}
-      {menuOpen && (
-        <div style={{
-          position: "fixed", top: 62, left: 0, right: 0, bottom: 0,
-          zIndex: 99,
-          background: "var(--bg)",
-          display: "flex", flexDirection: "column",
-          padding: "24px 24px 40px",
-          overflowY: "auto",
-        }}>
-          {/* Nav links */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 32 }}>
-            {links.map(l => (
-              <a
-                key={l}
-                href={"#" + l.toLowerCase()}
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  color: "var(--text)", fontSize: "1.6rem",
-                  fontFamily: "Syne, sans-serif", fontWeight: 800,
-                  textDecoration: "none", padding: "12px 0",
-                  borderBottom: "1px solid var(--border)",
-                  letterSpacing: "-0.02em",
-                  transition: "color 0.18s",
-                }}
-                onMouseEnter={e => e.currentTarget.style.color = "var(--accent)"}
-                onMouseLeave={e => e.currentTarget.style.color = "var(--text)"}
-              >
-                {l}
-              </a>
-            ))}
-          </div>
-
-          {/* Auth buttons */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: "auto" }}>
-            <Link
-              to="/auth/register"
-              onClick={() => setMenuOpen(false)}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                background: "var(--accent)", color: "#000",
-                fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "1rem",
-                padding: "16px", borderRadius: 12, textDecoration: "none",
-                transition: "box-shadow 0.18s",
-              }}
-            >
-              Crear cuenta gratis <ArrowRight size={16} />
-            </Link>
-            <Link
-              to="/auth/login"
-              onClick={() => setMenuOpen(false)}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: "transparent", color: "var(--text)",
-                fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "1rem",
-                padding: "16px", borderRadius: 12, textDecoration: "none",
-                border: "1.5px solid var(--border)",
-                transition: "border-color 0.18s",
-              }}
-            >
-              Iniciar sesión
-            </Link>
-          </div>
-
-          {/* Toggle mode inside menu */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
-            <button onClick={toggleMode} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", cursor: "pointer", color: "var(--muted)", fontFamily: "Syne, sans-serif", fontWeight: 600, fontSize: "0.85rem" }}>
-              {mode === "dark" ? <><Sun size={15} /> Modo claro</> : <><Moon size={15} /> Modo oscuro</>}
-            </button>
-          </div>
+{menuOpen && (
+  <div style={{
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 98,
+    background: "var(--bg)",
+  }}>
+    {/* Header del menú */}
+    <div style={{
+      height: 62, display: "flex", alignItems: "center",
+      justifyContent: "space-between", padding: "0 20px",
+      borderBottom: "1px solid var(--border)",
+    }}>
+      <Link to="/" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Zap size={18} color="#000" strokeWidth={3} />
         </div>
-      )}
+        <span style={{ fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: "1.15rem", color: "var(--text)" }}>
+          CV<span style={{ color: "var(--accent)" }}>iva</span>
+        </span>
+      </Link>
+      <button
+        onClick={() => setMenuOpen(false)}
+        style={{ width: 38, height: 38, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)" }}
+      >
+        <X size={18} />
+      </button>
+    </div>
+
+    {/* Contenido */}
+    <div style={{ padding: "32px 24px 40px", display: "flex", flexDirection: "column", height: "calc(100vh - 62px)", overflowY: "auto" }}>
+      {/* Nav links */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 32 }}>
+        {links.map(l => (
+          <a
+            key={l}
+            href={"#" + l.toLowerCase()}
+            onClick={() => setMenuOpen(false)}
+            style={{
+              color: "var(--text)", fontSize: "1.6rem",
+              fontFamily: "Syne, sans-serif", fontWeight: 800,
+              textDecoration: "none", padding: "14px 0",
+              borderBottom: "1px solid var(--border)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {l}
+          </a>
+        ))}
+      </div>
+
+      {/* Auth buttons */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: "auto" }}>
+        <Link
+          to="/auth/register"
+          onClick={() => setMenuOpen(false)}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            background: "var(--accent)", color: "#000",
+            fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "1rem",
+            padding: "16px", borderRadius: 12, textDecoration: "none",
+          }}
+        >
+          Crear cuenta gratis <ArrowRight size={16} />
+        </Link>
+        <Link
+          to="/auth/login"
+          onClick={() => setMenuOpen(false)}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "transparent", color: "var(--text)",
+            fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "1rem",
+            padding: "16px", borderRadius: 12, textDecoration: "none",
+            border: "1.5px solid var(--border)",
+          }}
+        >
+          Iniciar sesión
+        </Link>
+      </div>
+
+      {/* Toggle mode */}
+      <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+        <button onClick={toggleMode} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", cursor: "pointer", color: "var(--muted)", fontFamily: "Syne, sans-serif", fontWeight: 600, fontSize: "0.85rem" }}>
+          {mode === "dark" ? <><Sun size={15} /> Modo claro</> : <><Moon size={15} /> Modo oscuro</>}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       <style>{`
         @media (max-width: 768px) {
