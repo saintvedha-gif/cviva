@@ -32,37 +32,62 @@ export default async function handler(req) {
         messages: [
           {
             role: "user",
-            content: `Extrae la información de esta hoja de vida y devuelve ÚNICAMENTE un objeto JSON válido, sin texto adicional, sin backticks, sin explicaciones.
+            content: `Extrae la información de esta hoja de vida y devuelve ÚNICAMENTE un objeto JSON válido, sin texto adicional, sin backticks, sin explicaciones. Si un campo no existe en el CV déjalo como null o array vacío [].
 
-El JSON debe tener exactamente esta estructura:
 {
   "name": "nombre completo",
   "role": "cargo o título profesional",
-  "email": "email",
-  "phone": "teléfono",
-  "location": "ciudad, país",
-  "linkedin": "url de linkedin o vacío",
-  "summary": "resumen profesional de 2-3 oraciones",
+  "photo": null,
+  "email": "email o null",
+  "phone": "teléfono o null",
+  "location": "ciudad, país o null",
+  "linkedin": "url linkedin sin https:// o null",
+  "github": "url github sin https:// o null",
+  "portfolio": "url portfolio sin https:// o null",
+  "summary": "resumen profesional 2-3 oraciones o null",
   "experience": [
     {
+      "id": 1,
       "company": "empresa",
       "role": "cargo",
-      "period": "período ej: 2022 - Presente",
-      "description": "descripción de responsabilidades"
+      "period": "2022 - Presente",
+      "description": "descripción general",
+      "responsibilities": ["responsabilidad 1", "responsabilidad 2"]
     }
   ],
   "education": [
     {
+      "id": 1,
       "institution": "institución",
       "degree": "título o carrera",
-      "period": "período"
+      "period": "período",
+      "description": "descripción o logros o null"
     }
   ],
-  "skills": ["skill1", "skill2", "skill3"]
+  "skills": [
+    { "name": "skill", "level": 4, "category": "technical", "description": null }
+  ],
+  "certifications": [
+    { "id": 1, "name": "nombre cert", "institution": "institución", "period": "año", "description": null, "url": null }
+  ],
+  "projects": [
+    { "id": 1, "title": "nombre", "role": "rol en el proyecto", "description": "descripción", "technologies": ["tech1"], "url": null }
+  ],
+  "languages": [
+    { "name": "Español", "level": "Nativo" }
+  ],
+  "references": [],
+  "extraSections": []
 }
 
+Notas importantes:
+- Para skills, nivel va de 1 (básico) a 5 (experto). Si no hay nivel claro, usa 3.
+- Para skills category usa "technical" para técnicas y "soft" para blandas.
+- Si hay secciones que no encajan en ninguna categoría (voluntariado, publicaciones, premios, etc), agrégalas en extraSections con este formato: { "id": "voluntariado", "title": "Voluntariado", "items": [{ "title": "título", "subtitle": "organización", "description": "descripción" }] }
+- Para responsibilities extrae los bullets o logros de cada experiencia como array de strings.
+
 Hoja de vida:
-${text.slice(0, 3000)}`,
+${text.slice(0, 4000)}`
           },
         ],
       }),

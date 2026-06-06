@@ -52,8 +52,9 @@ const Field = ({ label, value, onChange, placeholder, type = "text", multiline =
   </div>
 );
 
-const emptyExp = () => ({ id: Date.now(), company: "", role: "", period: "", description: "" });
-const emptyEdu = () => ({ id: Date.now(), institution: "", degree: "", period: "" });
+const emptyExp = () => ({ id: Date.now(), company: "", role: "", period: "", description: "", responsibilities: [] });
+const emptyEdu = () => ({ id: Date.now(), institution: "", degree: "", period: "", description: "" });
+const emptySkill = () => ({ id: Date.now(), name: "", level: 3, category: "technical", description: "" });
 
 export default function CVEditorPage() {
   const [activeTab, setActiveTab] = useState("info");
@@ -63,32 +64,44 @@ export default function CVEditorPage() {
   const [showUploader, setShowUploader] = useState(true);
 
   const [info, setInfo] = useState({
-    name: "", role: "", email: "", phone: "", location: "", linkedin: "", summary: "",
+    name: "", role: "", email: "", phone: "",
+    location: "", linkedin: "", github: "", portfolio: "", summary: "",
   });
   const [experience, setExperience] = useState([emptyExp()]);
   const [education, setEducation] = useState([emptyEdu()]);
-  const [skills, setSkills] = useState("");
+  const [skills, setSkills] = useState([emptySkill()]);
 
   const cvData = {
     ...info,
     experience,
     education,
-    skills: skills.split(",").map(s => s.trim()).filter(Boolean),
+    skills,
   };
 
   const handleParsed = (parsed) => {
     setInfo({
-      name:     parsed.name     || "",
-      role:     parsed.role     || "",
-      email:    parsed.email    || "",
-      phone:    parsed.phone    || "",
-      location: parsed.location || "",
-      linkedin: parsed.linkedin || "",
-      summary:  parsed.summary  || "",
+      name:      parsed.name      || "",
+      role:      parsed.role      || "",
+      email:     parsed.email     || "",
+      phone:     parsed.phone     || "",
+      location:  parsed.location  || "",
+      linkedin:  parsed.linkedin  || "",
+      github:    parsed.github    || "",
+      portfolio: parsed.portfolio || "",
+      summary:   parsed.summary   || "",
     });
     setExperience(parsed.experience?.length ? parsed.experience : [emptyExp()]);
     setEducation(parsed.education?.length   ? parsed.education  : [emptyEdu()]);
-    setSkills(parsed.skills || "");
+    // Soporta skills como array de strings o array de objetos
+    if (parsed.skills?.length) {
+      setSkills(parsed.skills.map((s, i) =>
+        typeof s === "string"
+          ? { id: Date.now() + i, name: s, level: 3, category: "technical", description: "" }
+          : { id: s.id || Date.now() + i, ...s }
+      ));
+    } else {
+      setSkills([emptySkill()]);
+    }
     setShowUploader(false);
   };
 
@@ -105,13 +118,33 @@ export default function CVEditorPage() {
     setEducation(prev => prev.map(e => e.id === id ? { ...e, [field]: val } : e));
   const removeEdu = (id) => setEducation(prev => prev.filter(e => e.id !== id));
 
+  const updateSkill = (id, field, val) =>
+    setSkills(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s));
+  const removeSkill = (id) => setSkills(prev => prev.filter(s => s.id !== id));
+
+  // Responsabilidades por experiencia
+  const addResp = (expId) =>
+    setExperience(prev => prev.map(e => e.id === expId
+      ? { ...e, responsibilities: [...(e.responsibilities || []), ""] }
+      : e
+    ));
+  const updateResp = (expId, idx, val) =>
+    setExperience(prev => prev.map(e => e.id === expId
+      ? { ...e, responsibilities: e.responsibilities.map((r, i) => i === idx ? val : r) }
+      : e
+    ));
+  const removeResp = (expId, idx) =>
+    setExperience(prev => prev.map(e => e.id === expId
+      ? { ...e, responsibilities: e.responsibilities.filter((_, i) => i !== idx) }
+      : e
+    ));
+
   return (
     <div className="cv-editor-layout">
 
       {/* ── Editor panel ── */}
       <div className="cv-editor-panel" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-        {/* Upload / manual toggle */}
         {showUploader ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <CVUploader onParsed={handleParsed} />
@@ -124,12 +157,7 @@ export default function CVEditorPage() {
             </div>
             <button
               onClick={() => setShowUploader(false)}
-              style={{
-                padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)",
-                background: "transparent", color: "var(--muted)", cursor: "pointer",
-                fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.88rem",
-                transition: "all 0.18s",
-              }}
+              style={{ padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.88rem", transition: "all 0.18s" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
             >
@@ -141,12 +169,7 @@ export default function CVEditorPage() {
             {/* Back to uploader */}
             <button
               onClick={() => setShowUploader(true)}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
-                borderRadius: 9, border: "1px solid var(--border)", background: "transparent",
-                color: "var(--muted)", fontSize: "0.78rem", fontFamily: "Syne,sans-serif",
-                fontWeight: 600, cursor: "pointer", alignSelf: "flex-start", transition: "all 0.18s",
-              }}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, cursor: "pointer", alignSelf: "flex-start", transition: "all 0.18s" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
             >
@@ -164,8 +187,7 @@ export default function CVEditorPage() {
                     background: active ? "var(--accent)" : "transparent",
                     color: active ? "#000" : "var(--muted)",
                     fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.78rem",
-                    transition: "all 0.18s", whiteSpace: "nowrap", flex: "1 1 auto",
-                    justifyContent: "center",
+                    transition: "all 0.18s", whiteSpace: "nowrap", flex: "1 1 auto", justifyContent: "center",
                   }}>
                     <Icon size={13} /> {label}
                   </button>
@@ -173,25 +195,27 @@ export default function CVEditorPage() {
               })}
             </div>
 
-            {/* Tab: Info */}
+            {/* ── Tab: Info ── */}
             {activeTab === "info" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20 }}>
                 <h3 style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", margin: 0 }}>
                   Información personal
                 </h3>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-                  <Field label="Nombre completo" value={info.name} onChange={v => setInfo(p => ({ ...p, name: v }))} placeholder="Juan Pérez" />
-                  <Field label="Cargo / Rol" value={info.role} onChange={v => setInfo(p => ({ ...p, role: v }))} placeholder="Full Stack Developer" />
-                  <Field label="Email" value={info.email} onChange={v => setInfo(p => ({ ...p, email: v }))} placeholder="juan@email.com" type="email" />
-                  <Field label="Teléfono" value={info.phone} onChange={v => setInfo(p => ({ ...p, phone: v }))} placeholder="+57 300 000 0000" />
-                  <Field label="Ciudad / País" value={info.location} onChange={v => setInfo(p => ({ ...p, location: v }))} placeholder="Bogotá, Colombia" />
-                  <Field label="LinkedIn" value={info.linkedin} onChange={v => setInfo(p => ({ ...p, linkedin: v }))} placeholder="linkedin.com/in/juan" />
+                  <Field label="Nombre completo"  value={info.name}      onChange={v => setInfo(p => ({ ...p, name: v }))}      placeholder="Juan Pérez" />
+                  <Field label="Cargo / Rol"       value={info.role}      onChange={v => setInfo(p => ({ ...p, role: v }))}      placeholder="Full Stack Developer" />
+                  <Field label="Email"             value={info.email}     onChange={v => setInfo(p => ({ ...p, email: v }))}     placeholder="juan@email.com" type="email" />
+                  <Field label="Teléfono"          value={info.phone}     onChange={v => setInfo(p => ({ ...p, phone: v }))}     placeholder="+57 300 000 0000" />
+                  <Field label="Ciudad / País"     value={info.location}  onChange={v => setInfo(p => ({ ...p, location: v }))}  placeholder="Bogotá, Colombia" />
+                  <Field label="LinkedIn"          value={info.linkedin}  onChange={v => setInfo(p => ({ ...p, linkedin: v }))}  placeholder="linkedin.com/in/juan" />
+                  <Field label="GitHub"            value={info.github || ""}    onChange={v => setInfo(p => ({ ...p, github: v }))}    placeholder="github.com/tuusuario" />
+                  <Field label="Portfolio / Web"   value={info.portfolio || ""} onChange={v => setInfo(p => ({ ...p, portfolio: v }))} placeholder="tuportafolio.com" />
                 </div>
                 <Field label="Perfil profesional" value={info.summary} onChange={v => setInfo(p => ({ ...p, summary: v }))} placeholder="Describe tu perfil en 2-3 oraciones..." multiline />
               </div>
             )}
 
-            {/* Tab: Experience */}
+            {/* ── Tab: Experience ── */}
             {activeTab === "experience" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {experience.map((exp, i) => (
@@ -211,19 +235,44 @@ export default function CVEditorPage() {
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
                       <Field label="Empresa" value={exp.company} onChange={v => updateExp(exp.id, "company", v)} placeholder="Google" />
-                      <Field label="Período" value={exp.period} onChange={v => updateExp(exp.id, "period", v)} placeholder="2022 - Presente" />
+                      <Field label="Período" value={exp.period}  onChange={v => updateExp(exp.id, "period", v)}  placeholder="2022 - Presente" />
                     </div>
-                    <Field label="Cargo" value={exp.role} onChange={v => updateExp(exp.id, "role", v)} placeholder="Senior Developer" />
-                    <Field label="Descripción" value={exp.description} onChange={v => updateExp(exp.id, "description", v)} placeholder="Describe tus responsabilidades y logros..." multiline />
+                    <Field label="Cargo"       value={exp.role}        onChange={v => updateExp(exp.id, "role", v)}        placeholder="Senior Developer" />
+                    <Field label="Descripción" value={exp.description} onChange={v => updateExp(exp.id, "description", v)} placeholder="Describe brevemente tu rol..." multiline />
+
+                    {/* Responsabilidades */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <label style={{ fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, color: "var(--muted)" }}>
+                        Responsabilidades / Logros
+                      </label>
+                      {(exp.responsibilities || []).map((resp, idx) => (
+                        <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <input
+                            value={resp}
+                            onChange={e => updateResp(exp.id, idx, e.target.value)}
+                            placeholder={`Logro o responsabilidad ${idx + 1}...`}
+                            style={{ flex: 1, background: "var(--surface-high)", border: "1.5px solid var(--border)", borderRadius: 9, padding: "8px 12px", color: "var(--text)", fontFamily: "DM Sans,sans-serif", fontSize: "0.85rem", outline: "none" }}
+                            onFocus={e => e.target.style.borderColor = "var(--accent)"}
+                            onBlur={e => e.target.style.borderColor = "var(--border)"}
+                          />
+                          <button onClick={() => removeResp(exp.id, idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 4, display: "flex", flexShrink: 0 }}
+                            onMouseEnter={e => e.currentTarget.style.color = "var(--danger)"}
+                            onMouseLeave={e => e.currentTarget.style.color = "var(--muted)"}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                      <button onClick={() => addResp(exp.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, border: "1px dashed var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "Syne,sans-serif", fontWeight: 600, alignSelf: "flex-start", transition: "all 0.18s" }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
+                      >
+                        <Plus size={12} /> Agregar responsabilidad
+                      </button>
+                    </div>
                   </div>
                 ))}
-                <button onClick={() => setExperience(p => [...p, emptyExp()])} style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)",
-                  background: "transparent", color: "var(--muted)", cursor: "pointer",
-                  fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.85rem",
-                  transition: "border-color 0.18s, color 0.18s", width: "100%",
-                }}
+                <button onClick={() => setExperience(p => [...p, emptyExp()])} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.85rem", transition: "border-color 0.18s, color 0.18s", width: "100%" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
                 >
@@ -232,7 +281,7 @@ export default function CVEditorPage() {
               </div>
             )}
 
-            {/* Tab: Education */}
+            {/* ── Tab: Education ── */}
             {activeTab === "education" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {education.map((edu, i) => (
@@ -251,19 +300,14 @@ export default function CVEditorPage() {
                       )}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-                      <Field label="Institución" value={edu.institution} onChange={v => updateEdu(edu.id, "institution", v)} placeholder="Universidad Nacional" />
-                      <Field label="Período" value={edu.period} onChange={v => updateEdu(edu.id, "period", v)} placeholder="2018 - 2022" />
+                      <Field label="Institución"   value={edu.institution} onChange={v => updateEdu(edu.id, "institution", v)} placeholder="Universidad Nacional" />
+                      <Field label="Período"       value={edu.period}      onChange={v => updateEdu(edu.id, "period", v)}      placeholder="2018 - 2022" />
                     </div>
-                    <Field label="Título / Carrera" value={edu.degree} onChange={v => updateEdu(edu.id, "degree", v)} placeholder="Ingeniería de Sistemas" />
+                    <Field label="Título / Carrera" value={edu.degree}      onChange={v => updateEdu(edu.id, "degree", v)}      placeholder="Ingeniería de Sistemas" />
+                    <Field label="Descripción / Logros" value={edu.description || ""} onChange={v => updateEdu(edu.id, "description", v)} placeholder="Graduado con honores, tesis destacada..." multiline />
                   </div>
                 ))}
-                <button onClick={() => setEducation(p => [...p, emptyEdu()])} style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)",
-                  background: "transparent", color: "var(--muted)", cursor: "pointer",
-                  fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.85rem",
-                  transition: "border-color 0.18s, color 0.18s", width: "100%",
-                }}
+                <button onClick={() => setEducation(p => [...p, emptyEdu()])} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.85rem", transition: "border-color 0.18s, color 0.18s", width: "100%" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
                 >
@@ -272,65 +316,69 @@ export default function CVEditorPage() {
               </div>
             )}
 
-            {/* Tab: Skills */}
+            {/* ── Tab: Skills ── */}
             {activeTab === "skills" && (
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-                <h3 style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", margin: 0 }}>
-                  Habilidades
-                </h3>
-                <Field
-                  label="Escribe tus skills separadas por coma"
-                  value={skills}
-                  onChange={setSkills}
-                  placeholder="React, TypeScript, Node.js, SQL, Figma..."
-                  multiline
-                />
-                {skills && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {skills.split(",").map(s => s.trim()).filter(Boolean).map((skill, i) => (
-                      <span key={i} className="tag">{skill}</span>
-                    ))}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {skills.map((skill, i) => (
+                  <div key={skill.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.82rem", color: "var(--accent)" }}>Skill #{i + 1}</span>
+                      {skills.length > 1 && (
+                        <button onClick={() => removeSkill(skill.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, fontSize: "0.75rem", fontFamily: "Syne,sans-serif" }}
+                          onMouseEnter={e => e.currentTarget.style.color = "var(--danger)"}
+                          onMouseLeave={e => e.currentTarget.style.color = "var(--muted)"}
+                        >
+                          <Trash2 size={13} /> Eliminar
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+                      <Field label="Nombre" value={skill.name} onChange={v => updateSkill(skill.id, "name", v)} placeholder="React, Liderazgo..." />
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <label style={{ fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, color: "var(--muted)" }}>Categoría</label>
+                        <select value={skill.category} onChange={e => updateSkill(skill.id, "category", e.target.value)} style={{ background: "var(--surface-high)", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 14px", color: "var(--text)", fontFamily: "DM Sans,sans-serif", fontSize: "0.88rem", outline: "none" }}>
+                          <option value="technical">Técnica</option>
+                          <option value="soft">Blanda</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <label style={{ fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, color: "var(--muted)" }}>
+                        Nivel: {["", "Básico", "Elemental", "Intermedio", "Avanzado", "Experto"][skill.level]}
+                      </label>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <button key={n} onClick={() => updateSkill(skill.id, "level", n)} style={{ flex: 1, height: 8, borderRadius: 100, border: "none", cursor: "pointer", background: n <= skill.level ? (skill.category === "technical" ? "var(--accent)" : "#C77DFF") : "var(--border)", transition: "background 0.18s" }} />
+                        ))}
+                      </div>
+                    </div>
+                    <Field label="Descripción (opcional)" value={skill.description || ""} onChange={v => updateSkill(skill.id, "description", v)} placeholder="Detalle adicional..." />
                   </div>
-                )}
+                ))}
+                <button onClick={() => setSkills(p => [...p, emptySkill()])} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.85rem", transition: "border-color 0.18s, color 0.18s", width: "100%" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
+                >
+                  <Plus size={15} /> Agregar skill
+                </button>
               </div>
             )}
 
             {/* Actions */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button onClick={handleSave} style={{
-                flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer",
-                background: saved ? "#00E5A0" : "var(--accent)", color: "#000",
-                fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem",
-                transition: "background 0.25s, box-shadow 0.18s",
-              }}
+              <button onClick={handleSave} style={{ flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: saved ? "#00E5A0" : "var(--accent)", color: "#000", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem", transition: "background 0.25s, box-shadow 0.18s" }}
                 onMouseEnter={e => e.currentTarget.style.boxShadow = "var(--accent-glow)"}
                 onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
               >
                 <Save size={15} /> {saved ? "¡Guardado!" : "Guardar"}
               </button>
-              <button onClick={() => setShowExport(true)} style={{
-                flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                padding: "12px 20px", borderRadius: 10, cursor: "pointer",
-                background: "transparent", color: "var(--text)",
-                border: "1.5px solid var(--border)",
-                fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem",
-                transition: "border-color 0.18s, color 0.18s",
-              }}
+              <button onClick={() => setShowExport(true)} style={{ flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 20px", borderRadius: 10, cursor: "pointer", background: "transparent", color: "var(--text)", border: "1.5px solid var(--border)", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem", transition: "border-color 0.18s, color 0.18s" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}
               >
                 <FileText size={15} /> Exportar
               </button>
-              <button onClick={() => setShowPreview(p => !p)} className="preview-toggle-btn" style={{
-                flex: 1, minWidth: 120, display: "none", alignItems: "center", justifyContent: "center", gap: 8,
-                padding: "12px 20px", borderRadius: 10, cursor: "pointer",
-                background: showPreview ? "var(--accent-soft)" : "transparent",
-                color: showPreview ? "var(--accent)" : "var(--muted)",
-                border: "1.5px solid var(--border)",
-                fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem",
-                transition: "all 0.18s",
-              }}>
+              <button onClick={() => setShowPreview(p => !p)} className="preview-toggle-btn" style={{ flex: 1, minWidth: 120, display: "none", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 20px", borderRadius: 10, cursor: "pointer", background: showPreview ? "var(--accent-soft)" : "transparent", color: showPreview ? "var(--accent)" : "var(--muted)", border: "1.5px solid var(--border)", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem", transition: "all 0.18s" }}>
                 <Eye size={15} /> {showPreview ? "Ocultar preview" : "Ver preview"}
               </button>
             </div>
@@ -349,12 +397,7 @@ export default function CVEditorPage() {
         <CVPreview cvData={cvData} />
       </div>
 
-      <ExportModal
-        isOpen={showExport}
-        onClose={() => setShowExport(false)}
-        cvData={cvData}
-        previewElementId="cv-preview"
-      />
+      <ExportModal isOpen={showExport} onClose={() => setShowExport(false)} cvData={cvData} previewElementId="cv-preview" />
 
       <style>{`
         @media (max-width: 768px) {
@@ -368,23 +411,19 @@ export default function CVEditorPage() {
 }
 
 function CVPreview({ cvData }) {
-  const { name, role, email, phone, location, linkedin, summary, experience, education, skills } = cvData;
+  const { name, role, email, phone, location, linkedin, github, portfolio, summary, experience, education, skills } = cvData;
   return (
-    <div id="cv-preview" style={{
-      background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
-      padding: 24, fontSize: "0.78rem", color: "var(--text)", lineHeight: 1.6,
-      maxHeight: "calc(100vh - 160px)", overflowY: "auto",
-    }}>
+    <div id="cv-preview" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, fontSize: "0.78rem", color: "var(--text)", lineHeight: 1.6, maxHeight: "calc(100vh - 160px)", overflowY: "auto" }}>
       <div style={{ marginBottom: 18, paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
-        <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1.4rem", color: "var(--accent)", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
-          {name || "Tu nombre"}
-        </div>
+        <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1.4rem", color: "var(--accent)", letterSpacing: "-0.03em", lineHeight: 1.1 }}>{name || "Tu nombre"}</div>
         <div style={{ color: "var(--muted)", fontSize: "0.82rem", marginTop: 4 }}>{role || "Cargo / Rol"}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 8, color: "var(--muted)", fontSize: "0.72rem" }}>
-          {email && <span>{email}</span>}
-          {phone && <span>{phone}</span>}
+          {email    && <span>{email}</span>}
+          {phone    && <span>{phone}</span>}
           {location && <span>{location}</span>}
           {linkedin && <span style={{ color: "var(--accent)" }}>{linkedin}</span>}
+          {github   && <span style={{ color: "var(--accent)" }}>{github}</span>}
+          {portfolio && <span style={{ color: "var(--accent)" }}>{portfolio}</span>}
         </div>
       </div>
       {summary && <PreviewSection title="Perfil"><p style={{ margin: 0, color: "var(--muted)" }}>{summary}</p></PreviewSection>}
@@ -397,7 +436,12 @@ function CVPreview({ cvData }) {
                 <span style={{ color: "var(--muted)", fontSize: "0.7rem" }}>{exp.period}</span>
               </div>
               <div style={{ color: "var(--accent)", fontSize: "0.75rem", marginBottom: 4 }}>{exp.role}</div>
-              <div style={{ color: "var(--muted)" }}>{exp.description}</div>
+              {exp.description && <div style={{ color: "var(--muted)", marginBottom: 4 }}>{exp.description}</div>}
+              {exp.responsibilities?.filter(r => r).map((r, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, fontSize: "0.75rem", color: "var(--muted)" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: 700 }}>•</span>{r}
+                </div>
+              ))}
             </div>
           ))}
         </PreviewSection>
@@ -411,6 +455,7 @@ function CVPreview({ cvData }) {
                 <span style={{ color: "var(--muted)", fontSize: "0.7rem" }}>{edu.period}</span>
               </div>
               <div style={{ color: "var(--muted)" }}>{edu.degree}</div>
+              {edu.description && <div style={{ color: "var(--muted)", fontSize: "0.72rem", marginTop: 2 }}>{edu.description}</div>}
             </div>
           ))}
         </PreviewSection>
@@ -419,7 +464,9 @@ function CVPreview({ cvData }) {
         <PreviewSection title="Habilidades">
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {skills.map((s, i) => (
-              <span key={i} style={{ padding: "3px 10px", borderRadius: 100, fontSize: "0.7rem", background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)", fontFamily: "Syne,sans-serif", fontWeight: 700 }}>{s}</span>
+              <span key={i} style={{ padding: "3px 10px", borderRadius: 100, fontSize: "0.7rem", background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)", fontFamily: "Syne,sans-serif", fontWeight: 700 }}>
+                {typeof s === "string" ? s : s.name}
+              </span>
             ))}
           </div>
         </PreviewSection>

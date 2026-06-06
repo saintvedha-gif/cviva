@@ -34,9 +34,7 @@ export async function parseWithAI(rawText) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: rawText }),
   });
-
   if (!response.ok) throw new Error("Error al procesar con IA");
-
   const data = await response.json();
   if (!data.result) throw new Error("No se pudo extraer la información del CV");
   return data.result;
