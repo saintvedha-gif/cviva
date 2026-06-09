@@ -1,12 +1,13 @@
 // src/components/cv/InteractiveCVPage.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import {
   Download, Globe, Mail, Phone, MapPin, Linkedin, Github,
   Briefcase, GraduationCap, Wrench, User, Star, Menu, X,
   Zap, ExternalLink, Award, FolderOpen
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import ExportModal from "../dashboard/ExportModal";
+import { getCVBySlug } from "../../lib/supabase";
 
 const ACCENT_COLORS = ["#00E5FF", "#FFD166", "#FF6B6B", "#C77DFF", "#00E5A0", "#FF9F1C"];
 
@@ -52,20 +53,51 @@ const DEMO_CV = {
 };
 
 const SECTIONS = [
-  { id: "profile",         label: "Perfil",        icon: User },
-  { id: "experience",      label: "Experiencia",   icon: Briefcase },
-  { id: "education",       label: "Educación",     icon: GraduationCap },
-  { id: "skills",          label: "Habilidades",   icon: Wrench },
-  { id: "certifications",  label: "Certificaciones", icon: Award },
-  { id: "projects",        label: "Proyectos",     icon: FolderOpen },
+  { id: "profile",        label: "Perfil",          icon: User },
+  { id: "experience",     label: "Experiencia",     icon: Briefcase },
+  { id: "education",      label: "Educación",       icon: GraduationCap },
+  { id: "skills",         label: "Habilidades",     icon: Wrench },
+  { id: "certifications", label: "Certificaciones", icon: Award },
+  { id: "projects",       label: "Proyectos",       icon: FolderOpen },
 ];
 
-export default function InteractiveCVPage({ cvData = DEMO_CV }) {
+export default function InteractiveCVPage() {
+  const { slug } = useParams();
+  const [cvData, setCvData] = useState(null);
+  const [loadingCV, setLoadingCV] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [activeSection, setActiveSection] = useState("profile");
   const [showExport, setShowExport] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Solo mostrar secciones que tienen contenido
+  useEffect(() => {
+    if (!slug) {
+      setCvData(DEMO_CV);
+      setLoadingCV(false);
+      return;
+    }
+    getCVBySlug(slug).then(({ data }) => {
+      if (data?.cv_data) setCvData(data.cv_data);
+      else setNotFound(true);
+      setLoadingCV(false);
+    });
+  }, [slug]);
+
+  if (loadingCV) return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 40, height: 40, border: "3px solid var(--border)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  if (notFound) return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24 }}>
+      <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1.5rem", color: "var(--text)" }}>CV no encontrado</div>
+      <div style={{ color: "var(--muted)", textAlign: "center" }}>Este CV no existe o no está publicado.</div>
+      <Link to="/" style={{ color: "var(--accent)", fontFamily: "Syne,sans-serif", fontWeight: 600, textDecoration: "none" }}>← Volver al inicio</Link>
+    </div>
+  );
+
   const visibleSections = SECTIONS.filter(s => {
     if (s.id === "profile")        return true;
     if (s.id === "experience")     return cvData.experience?.length > 0;
@@ -76,7 +108,6 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
     return false;
   });
 
-  // Secciones extra dinámicas
   const allSections = [
     ...visibleSections,
     ...(cvData.extraSections || []).map(s => ({ id: s.id, label: s.title, icon: Star })),
@@ -87,7 +118,7 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
 
-      {/* ── Topbar ── */}
+      {/* Topbar */}
       <header style={{
         position: "sticky", top: 0, zIndex: 50,
         background: "color-mix(in srgb, var(--bg) 88%, transparent)",
@@ -113,9 +144,7 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
           </Link>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => setShowExport(true)}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--muted)", fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, cursor: "pointer", transition: "all 0.18s" }}
+          <button onClick={() => setShowExport(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--muted)", fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, cursor: "pointer", transition: "all 0.18s" }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
           >
@@ -129,19 +158,17 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
 
       <div style={{ display: "flex", flex: 1, position: "relative" }}>
 
-        {/* ── Sidebar overlay mobile ── */}
         {sidebarOpen && (
           <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 39, backdropFilter: "blur(4px)" }} />
         )}
 
-        {/* ── Sidebar ── */}
+        {/* Sidebar */}
         <aside style={{
           width: 230, flexShrink: 0, borderRight: "1px solid var(--border)",
           background: "var(--surface)", display: "flex", flexDirection: "column",
           position: "sticky", top: 56, height: "calc(100vh - 56px)", overflowY: "auto",
         }} className={`cv-sidebar${sidebarOpen ? " cv-sidebar-open" : ""}`}>
 
-          {/* Avatar */}
           <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, textAlign: "center" }}>
             {cvData.photo ? (
               <img src={cvData.photo} alt={cvData.name} style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "3px solid var(--accent)" }} />
@@ -156,7 +183,6 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
             </div>
           </div>
 
-          {/* Nav */}
           <nav style={{ flex: 1, padding: "12px 10px" }}>
             {allSections.map(({ id, label, icon: Icon }) => {
               const active = activeSection === id;
@@ -167,8 +193,7 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
                   background: active ? "var(--accent-soft)" : "transparent",
                   color: active ? "var(--accent)" : "var(--muted)",
                   fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.82rem",
-                  marginBottom: 3, textAlign: "left", position: "relative",
-                  transition: "all 0.18s",
+                  marginBottom: 3, textAlign: "left", position: "relative", transition: "all 0.18s",
                 }}
                   onMouseEnter={e => { if (!active) { e.currentTarget.style.background = "var(--surface-high)"; e.currentTarget.style.color = "var(--text)"; } }}
                   onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; } }}
@@ -181,24 +206,22 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
             })}
           </nav>
 
-          {/* Contact mini */}
-          <div style={{ padding: "16px 16px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
-            {cvData.email && <ContactMini icon={Mail} text={cvData.email} />}
-            {cvData.phone && <ContactMini icon={Phone} text={cvData.phone} />}
-            {cvData.location && <ContactMini icon={MapPin} text={cvData.location} />}
-            {cvData.linkedin && <ContactMini icon={Linkedin} text="LinkedIn" href={`https://${cvData.linkedin}`} accent />}
-            {cvData.github && <ContactMini icon={Github} text="GitHub" href={`https://${cvData.github}`} accent />}
-            {cvData.portfolio && <ContactMini icon={Globe} text="Portfolio" href={`https://${cvData.portfolio}`} accent />}
+          <div style={{ padding: "16px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+            {cvData.email    && <ContactMini icon={Mail}     text={cvData.email} />}
+            {cvData.phone    && <ContactMini icon={Phone}    text={cvData.phone} />}
+            {cvData.location && <ContactMini icon={MapPin}   text={cvData.location} />}
+            {cvData.linkedin && <ContactMini icon={Linkedin} text="LinkedIn"  href={`https://${cvData.linkedin}`}  accent />}
+            {cvData.github   && <ContactMini icon={Github}   text="GitHub"    href={`https://${cvData.github}`}    accent />}
+            {cvData.portfolio && <ContactMini icon={Globe}   text="Portfolio" href={`https://${cvData.portfolio}`} accent />}
           </div>
         </aside>
 
-        {/* ── Main content ── */}
+        {/* Main */}
         <main id="cv-preview" style={{ flex: 1, padding: "28px 24px", overflowY: "auto", minWidth: 0 }}>
 
-          {/* ── PROFILE ── */}
+          {/* PROFILE */}
           {activeSection === "profile" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 740 }}>
-              {/* Header card */}
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, overflow: "hidden" }}>
                 <div style={{ background: "linear-gradient(135deg, var(--accent) 0%, #0062FF 100%)", padding: "32px 28px", position: "relative" }}>
                   <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(0,0,0,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.07) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
@@ -212,7 +235,7 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
                     )}
                     <div>
                       <h1 style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "clamp(1.4rem,4vw,2rem)", color: "#000", margin: 0, letterSpacing: "-0.02em" }}>{cvData.name}</h1>
-                      <div style={{ fontSize: "0.9rem", color: "rgba(0,0,0,0.6)", marginTop: 4, fontFamily: "DM Sans,sans-serif" }}>{cvData.role}</div>
+                      <div style={{ fontSize: "0.9rem", color: "rgba(0,0,0,0.6)", marginTop: 4 }}>{cvData.role}</div>
                     </div>
                   </div>
                 </div>
@@ -223,14 +246,13 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
                 )}
               </div>
 
-              {/* Quick stats */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12 }}>
                 {[
-                  { label: "Experiencias", value: cvData.experience?.length || 0, color: "#00E5FF" },
-                  { label: "Educación", value: cvData.education?.length || 0, color: "#FFD166" },
-                  { label: "Habilidades", value: cvData.skills?.length || 0, color: "#C77DFF" },
+                  { label: "Experiencias",   value: cvData.experience?.length    || 0, color: "#00E5FF" },
+                  { label: "Educación",      value: cvData.education?.length     || 0, color: "#FFD166" },
+                  { label: "Habilidades",    value: cvData.skills?.length        || 0, color: "#C77DFF" },
                   ...(cvData.certifications?.length > 0 ? [{ label: "Certificaciones", value: cvData.certifications.length, color: "#00E5A0" }] : []),
-                  ...(cvData.projects?.length > 0 ? [{ label: "Proyectos", value: cvData.projects.length, color: "#FF6B6B" }] : []),
+                  ...(cvData.projects?.length       > 0 ? [{ label: "Proyectos",       value: cvData.projects.length,       color: "#FF6B6B" }] : []),
                 ].map(({ label, value, color }) => (
                   <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "18px 16px", textAlign: "center" }}>
                     <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "2rem", color, lineHeight: 1 }}>{value}</div>
@@ -239,7 +261,6 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
                 ))}
               </div>
 
-              {/* Languages if present */}
               {cvData.languages?.length > 0 && (
                 <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 24px" }}>
                   <SectionTitle>Idiomas</SectionTitle>
@@ -256,7 +277,7 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
             </div>
           )}
 
-          {/* ── EXPERIENCE ── */}
+          {/* EXPERIENCE */}
           {activeSection === "experience" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 740 }}>
               <SectionTitle>Experiencia Laboral</SectionTitle>
@@ -272,9 +293,7 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
                         {exp.period}
                       </span>
                     </div>
-                    {exp.description && (
-                      <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.65 }}>{exp.description}</p>
-                    )}
+                    {exp.description && <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.65 }}>{exp.description}</p>}
                     {exp.responsibilities?.filter(r => r).length > 0 && (
                       <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
                         {exp.responsibilities.filter(r => r).map((resp, j) => (
@@ -291,7 +310,7 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
             </div>
           )}
 
-          {/* ── EDUCATION ── */}
+          {/* EDUCATION */}
           {activeSection === "education" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 740 }}>
               <SectionTitle>Educación</SectionTitle>
@@ -307,16 +326,14 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
                         {edu.period}
                       </span>
                     </div>
-                    {edu.description && (
-                      <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: "10px 0 0", lineHeight: 1.6 }}>{edu.description}</p>
-                    )}
+                    {edu.description && <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: "10px 0 0", lineHeight: 1.6 }}>{edu.description}</p>}
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* ── SKILLS ── */}
+          {/* SKILLS */}
           {activeSection === "skills" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 740 }}>
               <SectionTitle>Habilidades</SectionTitle>
@@ -329,15 +346,12 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
                       {cat === "technical" ? "Técnicas" : "Blandas"}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
-                      {filtered.map((skill, i) => (
-                        <SkillCard key={i} skill={skill} isTechnical={cat === "technical"} />
-                      ))}
+                      {filtered.map((skill, i) => <SkillCard key={i} skill={skill} isTechnical={cat === "technical"} />)}
                     </div>
                   </div>
                 );
               })}
-              {/* Skills sin categoría */}
-              {cvData.skills?.some(s => !s.category) === false && cvData.skills?.every(s => s.category) === false && (
+              {cvData.skills?.every(s => !s.category) && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   {cvData.skills.map((skill, i) => (
                     <span key={i} style={{ padding: "8px 16px", borderRadius: 100, background: "var(--accent-soft)", color: "var(--accent)", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.82rem", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)" }}>
@@ -349,7 +363,7 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
             </div>
           )}
 
-          {/* ── CERTIFICATIONS ── */}
+          {/* CERTIFICATIONS */}
           {activeSection === "certifications" && cvData.certifications?.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 740 }}>
               <SectionTitle>Certificaciones</SectionTitle>
@@ -364,17 +378,13 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
                     {cert.period && <div style={{ fontSize: "0.72rem", color: "var(--muted)" }}>{cert.period}</div>}
                     {cert.description && <p style={{ fontSize: "0.8rem", color: "var(--muted)", margin: "8px 0 0", lineHeight: 1.6 }}>{cert.description}</p>}
                   </div>
-                  {cert.url && (
-                    <a href={cert.url} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", flexShrink: 0 }}>
-                      <ExternalLink size={15} />
-                    </a>
-                  )}
+                  {cert.url && <a href={cert.url} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", flexShrink: 0 }}><ExternalLink size={15} /></a>}
                 </div>
               ))}
             </div>
           )}
 
-          {/* ── PROJECTS ── */}
+          {/* PROJECTS */}
           {activeSection === "projects" && cvData.projects?.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 740 }}>
               <SectionTitle>Proyectos</SectionTitle>
@@ -403,7 +413,7 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
             </div>
           )}
 
-          {/* ── EXTRA SECTIONS dinámicas ── */}
+          {/* EXTRA SECTIONS */}
           {cvData.extraSections?.map(section => (
             activeSection === section.id && (
               <div key={section.id} style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 740 }}>
@@ -438,11 +448,8 @@ export default function InteractiveCVPage({ cvData = DEMO_CV }) {
         @media (max-width: 768px) {
           .sidebar-toggle { display: flex !important; }
           .cv-sidebar {
-            position: fixed !important;
-            top: 56px !important;
-            left: 0 !important;
-            height: calc(100vh - 56px) !important;
-            z-index: 40;
+            position: fixed !important; top: 56px !important; left: 0 !important;
+            height: calc(100vh - 56px) !important; z-index: 40;
             transform: translateX(-100%);
             transition: transform 0.3s cubic-bezier(.4,0,.2,1);
           }
@@ -461,12 +468,10 @@ function SkillCard({ skill, isTechnical }) {
       <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem", color: "var(--text)", marginBottom: 4 }}>
         {typeof skill === "string" ? skill : skill.name}
       </div>
-      {skill.description && (
-        <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginBottom: 8 }}>{skill.description}</div>
-      )}
+      {skill.description && <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginBottom: 8 }}>{skill.description}</div>}
       {level > 0 && (
         <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
-          {[1, 2, 3, 4, 5].map(n => (
+          {[1,2,3,4,5].map(n => (
             <div key={n} style={{ flex: 1, height: 5, borderRadius: 100, background: n <= level ? color : "var(--border)", transition: "background 0.2s" }} />
           ))}
         </div>

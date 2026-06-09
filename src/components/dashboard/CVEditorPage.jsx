@@ -1,8 +1,11 @@
 // src/components/dashboard/CVEditorPage.jsx
-import { useState } from "react";
-import { Plus, Trash2, Save, Eye, Upload, User, Briefcase, GraduationCap, Wrench, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Plus, Trash2, Save, Eye, Upload, User, Briefcase, GraduationCap, Wrench, FileText, Globe } from "lucide-react";
 import ExportModal from "./ExportModal";
 import CVUploader from "./CVUploader";
+import { useAuth } from "../../hooks/useAuth";
+import { getCVById, updateCV, createCV } from "../../lib/supabase";
 
 const TABS = [
   { id: "info",       label: "Info",        icon: User },
@@ -17,34 +20,14 @@ const Field = ({ label, value, onChange, placeholder, type = "text", multiline =
       {label}
     </label>
     {multiline ? (
-      <textarea
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={4}
-        style={{
-          background: "var(--surface-high)", border: "1.5px solid var(--border)",
-          borderRadius: 10, padding: "10px 14px", color: "var(--text)",
-          fontFamily: "DM Sans,sans-serif", fontSize: "0.88rem", resize: "vertical",
-          outline: "none", transition: "border-color 0.18s", lineHeight: 1.6,
-          width: "100%",
-        }}
+      <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={4}
+        style={{ background: "var(--surface-high)", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 14px", color: "var(--text)", fontFamily: "DM Sans,sans-serif", fontSize: "0.88rem", resize: "vertical", outline: "none", transition: "border-color 0.18s", lineHeight: 1.6, width: "100%" }}
         onFocus={e => e.target.style.borderColor = "var(--accent)"}
         onBlur={e => e.target.style.borderColor = "var(--border)"}
       />
     ) : (
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{
-          background: "var(--surface-high)", border: "1.5px solid var(--border)",
-          borderRadius: 10, padding: "10px 14px", color: "var(--text)",
-          fontFamily: "DM Sans,sans-serif", fontSize: "0.88rem",
-          outline: "none", transition: "border-color 0.18s",
-          width: "100%",
-        }}
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{ background: "var(--surface-high)", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 14px", color: "var(--text)", fontFamily: "DM Sans,sans-serif", fontSize: "0.88rem", outline: "none", transition: "border-color 0.18s", width: "100%" }}
         onFocus={e => e.target.style.borderColor = "var(--accent)"}
         onBlur={e => e.target.style.borderColor = "var(--border)"}
       />
@@ -52,30 +35,91 @@ const Field = ({ label, value, onChange, placeholder, type = "text", multiline =
   </div>
 );
 
-const emptyExp = () => ({ id: Date.now(), company: "", role: "", period: "", description: "", responsibilities: [] });
-const emptyEdu = () => ({ id: Date.now(), institution: "", degree: "", period: "", description: "" });
-const emptySkill = () => ({ id: Date.now(), name: "", level: 3, category: "technical", description: "" });
+const emptyExp   = () => ({ id: Date.now(),       company: "", role: "", period: "", description: "", responsibilities: [] });
+const emptyEdu   = () => ({ id: Date.now() + 1,   institution: "", degree: "", period: "", description: "" });
+const emptySkill = () => ({ id: Date.now() + 2,   name: "", level: 3, category: "technical", description: "" });
 
 export default function CVEditorPage() {
-  const [activeTab, setActiveTab] = useState("info");
-  const [showExport, setShowExport] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [activeTab,    setActiveTab]    = useState("info");
+  const [showExport,   setShowExport]   = useState(false);
+  const [saved,        setSaved]        = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [showPreview,  setShowPreview]  = useState(false);
   const [showUploader, setShowUploader] = useState(true);
+  const [cvId,         setCvId]         = useState(id && id !== "new" ? id : null);
+  const [cvTitle,      setCvTitle]      = useState("Mi CV");
+  const [published,    setPublished]    = useState(false);
 
   const [info, setInfo] = useState({
     name: "", role: "", email: "", phone: "",
     location: "", linkedin: "", github: "", portfolio: "", summary: "",
   });
   const [experience, setExperience] = useState([emptyExp()]);
-  const [education, setEducation] = useState([emptyEdu()]);
-  const [skills, setSkills] = useState([emptySkill()]);
+  const [education,  setEducation]  = useState([emptyEdu()]);
+  const [skills,     setSkills]     = useState([emptySkill()]);
 
-  const cvData = {
-    ...info,
-    experience,
-    education,
-    skills,
+  // Cargar CV existente
+  useEffect(() => {
+    if (!id || id === "new") return;
+    getCVById(id).then(({ data }) => {
+      if (!data) return;
+      setCvId(data.id);
+      setCvTitle(data.title);
+      setPublished(data.published);
+      const d = data.cv_data || {};
+      if (d.name !== undefined) {
+        setInfo({
+          name:      d.name      || "",
+          role:      d.role      || "",
+          email:     d.email     || "",
+          phone:     d.phone     || "",
+          location:  d.location  || "",
+          linkedin:  d.linkedin  || "",
+          github:    d.github    || "",
+          portfolio: d.portfolio || "",
+          summary:   d.summary   || "",
+        });
+        if (d.experience?.length) setExperience(d.experience);
+        if (d.education?.length)  setEducation(d.education);
+        if (d.skills?.length) setSkills(
+          d.skills.map((s, i) => typeof s === "string"
+            ? { id: Date.now() + i, name: s, level: 3, category: "technical", description: "" }
+            : s
+          )
+        );
+        setShowUploader(false);
+      }
+    });
+  }, [id]);
+
+  const cvData = { ...info, experience, education, skills };
+
+  const handleSave = async (publishFlag) => {
+    setSaving(true);
+    const shouldPublish = publishFlag !== undefined ? publishFlag : published;
+    const payload = {
+      cv_data: cvData,
+      title: cvData.name ? `CV — ${cvData.name}` : cvTitle,
+      published: shouldPublish,
+    };
+    if (cvId) {
+      await updateCV(cvId, payload);
+      if (publishFlag !== undefined) setPublished(publishFlag);
+    } else {
+      const { data } = await createCV(user.id, payload.title);
+      if (data) {
+        await updateCV(data.id, { cv_data: cvData, published: shouldPublish });
+        setCvId(data.id);
+        navigate(`/dashboard/cvs/${data.id}/edit`, { replace: true });
+      }
+    }
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
   };
 
   const handleParsed = (parsed) => {
@@ -92,7 +136,6 @@ export default function CVEditorPage() {
     });
     setExperience(parsed.experience?.length ? parsed.experience : [emptyExp()]);
     setEducation(parsed.education?.length   ? parsed.education  : [emptyEdu()]);
-    // Soporta skills como array de strings o array de objetos
     if (parsed.skills?.length) {
       setSkills(parsed.skills.map((s, i) =>
         typeof s === "string"
@@ -105,44 +148,21 @@ export default function CVEditorPage() {
     setShowUploader(false);
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+  const updateExp  = (id, f, v) => setExperience(p => p.map(e => e.id === id ? { ...e, [f]: v } : e));
+  const removeExp  = (id)       => setExperience(p => p.filter(e => e.id !== id));
+  const updateEdu  = (id, f, v) => setEducation(p => p.map(e => e.id === id ? { ...e, [f]: v } : e));
+  const removeEdu  = (id)       => setEducation(p => p.filter(e => e.id !== id));
+  const updateSkill = (id, f, v) => setSkills(p => p.map(s => s.id === id ? { ...s, [f]: v } : s));
+  const removeSkill = (id)       => setSkills(p => p.filter(s => s.id !== id));
 
-  const updateExp = (id, field, val) =>
-    setExperience(prev => prev.map(e => e.id === id ? { ...e, [field]: val } : e));
-  const removeExp = (id) => setExperience(prev => prev.filter(e => e.id !== id));
-
-  const updateEdu = (id, field, val) =>
-    setEducation(prev => prev.map(e => e.id === id ? { ...e, [field]: val } : e));
-  const removeEdu = (id) => setEducation(prev => prev.filter(e => e.id !== id));
-
-  const updateSkill = (id, field, val) =>
-    setSkills(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s));
-  const removeSkill = (id) => setSkills(prev => prev.filter(s => s.id !== id));
-
-  // Responsabilidades por experiencia
-  const addResp = (expId) =>
-    setExperience(prev => prev.map(e => e.id === expId
-      ? { ...e, responsibilities: [...(e.responsibilities || []), ""] }
-      : e
-    ));
-  const updateResp = (expId, idx, val) =>
-    setExperience(prev => prev.map(e => e.id === expId
-      ? { ...e, responsibilities: e.responsibilities.map((r, i) => i === idx ? val : r) }
-      : e
-    ));
-  const removeResp = (expId, idx) =>
-    setExperience(prev => prev.map(e => e.id === expId
-      ? { ...e, responsibilities: e.responsibilities.filter((_, i) => i !== idx) }
-      : e
-    ));
+  const addResp    = (expId)         => setExperience(p => p.map(e => e.id === expId ? { ...e, responsibilities: [...(e.responsibilities || []), ""] } : e));
+  const updateResp = (expId, i, v)   => setExperience(p => p.map(e => e.id === expId ? { ...e, responsibilities: e.responsibilities.map((r, j) => j === i ? v : r) } : e));
+  const removeResp = (expId, i)      => setExperience(p => p.map(e => e.id === expId ? { ...e, responsibilities: e.responsibilities.filter((_, j) => j !== i) } : e));
 
   return (
     <div className="cv-editor-layout">
 
-      {/* ── Editor panel ── */}
+      {/* Editor panel */}
       <div className="cv-editor-panel" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
         {showUploader ? (
@@ -150,13 +170,10 @@ export default function CVEditorPage() {
             <CVUploader onParsed={handleParsed} />
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-              <span style={{ fontSize: "0.78rem", color: "var(--muted)", fontFamily: "Syne,sans-serif", fontWeight: 600, whiteSpace: "nowrap" }}>
-                o crea desde cero
-              </span>
+              <span style={{ fontSize: "0.78rem", color: "var(--muted)", fontFamily: "Syne,sans-serif", fontWeight: 600, whiteSpace: "nowrap" }}>o crea desde cero</span>
               <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
             </div>
-            <button
-              onClick={() => setShowUploader(false)}
+            <button onClick={() => setShowUploader(false)}
               style={{ padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.88rem", transition: "all 0.18s" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
@@ -167,8 +184,7 @@ export default function CVEditorPage() {
         ) : (
           <>
             {/* Back to uploader */}
-            <button
-              onClick={() => setShowUploader(true)}
+            <button onClick={() => setShowUploader(true)}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, cursor: "pointer", alignSelf: "flex-start", transition: "all 0.18s" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
@@ -181,49 +197,38 @@ export default function CVEditorPage() {
               {TABS.map(({ id, label, icon: Icon }) => {
                 const active = activeTab === id;
                 return (
-                  <button key={id} onClick={() => setActiveTab(id)} style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer",
-                    background: active ? "var(--accent)" : "transparent",
-                    color: active ? "#000" : "var(--muted)",
-                    fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.78rem",
-                    transition: "all 0.18s", whiteSpace: "nowrap", flex: "1 1 auto", justifyContent: "center",
-                  }}>
+                  <button key={id} onClick={() => setActiveTab(id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: active ? "var(--accent)" : "transparent", color: active ? "#000" : "var(--muted)", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.78rem", transition: "all 0.18s", whiteSpace: "nowrap", flex: "1 1 auto", justifyContent: "center" }}>
                     <Icon size={13} /> {label}
                   </button>
                 );
               })}
             </div>
 
-            {/* ── Tab: Info ── */}
+            {/* INFO */}
             {activeTab === "info" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20 }}>
-                <h3 style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", margin: 0 }}>
-                  Información personal
-                </h3>
+                <h3 style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", margin: 0 }}>Información personal</h3>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-                  <Field label="Nombre completo"  value={info.name}      onChange={v => setInfo(p => ({ ...p, name: v }))}      placeholder="Juan Pérez" />
-                  <Field label="Cargo / Rol"       value={info.role}      onChange={v => setInfo(p => ({ ...p, role: v }))}      placeholder="Full Stack Developer" />
-                  <Field label="Email"             value={info.email}     onChange={v => setInfo(p => ({ ...p, email: v }))}     placeholder="juan@email.com" type="email" />
-                  <Field label="Teléfono"          value={info.phone}     onChange={v => setInfo(p => ({ ...p, phone: v }))}     placeholder="+57 300 000 0000" />
-                  <Field label="Ciudad / País"     value={info.location}  onChange={v => setInfo(p => ({ ...p, location: v }))}  placeholder="Bogotá, Colombia" />
-                  <Field label="LinkedIn"          value={info.linkedin}  onChange={v => setInfo(p => ({ ...p, linkedin: v }))}  placeholder="linkedin.com/in/juan" />
-                  <Field label="GitHub"            value={info.github || ""}    onChange={v => setInfo(p => ({ ...p, github: v }))}    placeholder="github.com/tuusuario" />
-                  <Field label="Portfolio / Web"   value={info.portfolio || ""} onChange={v => setInfo(p => ({ ...p, portfolio: v }))} placeholder="tuportafolio.com" />
+                  <Field label="Nombre completo" value={info.name}      onChange={v => setInfo(p => ({ ...p, name: v }))}      placeholder="Juan Pérez" />
+                  <Field label="Cargo / Rol"      value={info.role}      onChange={v => setInfo(p => ({ ...p, role: v }))}      placeholder="Full Stack Developer" />
+                  <Field label="Email"            value={info.email}     onChange={v => setInfo(p => ({ ...p, email: v }))}     placeholder="juan@email.com" type="email" />
+                  <Field label="Teléfono"         value={info.phone}     onChange={v => setInfo(p => ({ ...p, phone: v }))}     placeholder="+57 300 000 0000" />
+                  <Field label="Ciudad / País"    value={info.location}  onChange={v => setInfo(p => ({ ...p, location: v }))}  placeholder="Bogotá, Colombia" />
+                  <Field label="LinkedIn"         value={info.linkedin}  onChange={v => setInfo(p => ({ ...p, linkedin: v }))}  placeholder="linkedin.com/in/juan" />
+                  <Field label="GitHub"           value={info.github    || ""} onChange={v => setInfo(p => ({ ...p, github: v }))}    placeholder="github.com/tuusuario" />
+                  <Field label="Portfolio / Web"  value={info.portfolio || ""} onChange={v => setInfo(p => ({ ...p, portfolio: v }))} placeholder="tuportafolio.com" />
                 </div>
                 <Field label="Perfil profesional" value={info.summary} onChange={v => setInfo(p => ({ ...p, summary: v }))} placeholder="Describe tu perfil en 2-3 oraciones..." multiline />
               </div>
             )}
 
-            {/* ── Tab: Experience ── */}
+            {/* EXPERIENCE */}
             {activeTab === "experience" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {experience.map((exp, i) => (
                   <div key={exp.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem", color: "var(--accent)" }}>
-                        Experiencia #{i + 1}
-                      </span>
+                      <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem", color: "var(--accent)" }}>Experiencia #{i + 1}</span>
                       {experience.length > 1 && (
                         <button onClick={() => removeExp(exp.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, fontSize: "0.75rem", fontFamily: "Syne,sans-serif" }}
                           onMouseEnter={e => e.currentTarget.style.color = "var(--danger)"}
@@ -235,22 +240,15 @@ export default function CVEditorPage() {
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
                       <Field label="Empresa" value={exp.company} onChange={v => updateExp(exp.id, "company", v)} placeholder="Google" />
-                      <Field label="Período" value={exp.period}  onChange={v => updateExp(exp.id, "period", v)}  placeholder="2022 - Presente" />
+                      <Field label="Período" value={exp.period}  onChange={v => updateExp(exp.id, "period",  v)} placeholder="2022 - Presente" />
                     </div>
-                    <Field label="Cargo"       value={exp.role}        onChange={v => updateExp(exp.id, "role", v)}        placeholder="Senior Developer" />
+                    <Field label="Cargo"       value={exp.role}        onChange={v => updateExp(exp.id, "role",        v)} placeholder="Senior Developer" />
                     <Field label="Descripción" value={exp.description} onChange={v => updateExp(exp.id, "description", v)} placeholder="Describe brevemente tu rol..." multiline />
-
-                    {/* Responsabilidades */}
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <label style={{ fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, color: "var(--muted)" }}>
-                        Responsabilidades / Logros
-                      </label>
+                      <label style={{ fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, color: "var(--muted)" }}>Responsabilidades / Logros</label>
                       {(exp.responsibilities || []).map((resp, idx) => (
                         <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <input
-                            value={resp}
-                            onChange={e => updateResp(exp.id, idx, e.target.value)}
-                            placeholder={`Logro o responsabilidad ${idx + 1}...`}
+                          <input value={resp} onChange={e => updateResp(exp.id, idx, e.target.value)} placeholder={`Logro ${idx + 1}...`}
                             style={{ flex: 1, background: "var(--surface-high)", border: "1.5px solid var(--border)", borderRadius: 9, padding: "8px 12px", color: "var(--text)", fontFamily: "DM Sans,sans-serif", fontSize: "0.85rem", outline: "none" }}
                             onFocus={e => e.target.style.borderColor = "var(--accent)"}
                             onBlur={e => e.target.style.borderColor = "var(--border)"}
@@ -281,15 +279,13 @@ export default function CVEditorPage() {
               </div>
             )}
 
-            {/* ── Tab: Education ── */}
+            {/* EDUCATION */}
             {activeTab === "education" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {education.map((edu, i) => (
                   <div key={edu.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem", color: "var(--accent)" }}>
-                        Educación #{i + 1}
-                      </span>
+                      <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem", color: "var(--accent)" }}>Educación #{i + 1}</span>
                       {education.length > 1 && (
                         <button onClick={() => removeEdu(edu.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, fontSize: "0.75rem", fontFamily: "Syne,sans-serif" }}
                           onMouseEnter={e => e.currentTarget.style.color = "var(--danger)"}
@@ -300,11 +296,11 @@ export default function CVEditorPage() {
                       )}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-                      <Field label="Institución"   value={edu.institution} onChange={v => updateEdu(edu.id, "institution", v)} placeholder="Universidad Nacional" />
-                      <Field label="Período"       value={edu.period}      onChange={v => updateEdu(edu.id, "period", v)}      placeholder="2018 - 2022" />
+                      <Field label="Institución" value={edu.institution} onChange={v => updateEdu(edu.id, "institution", v)} placeholder="Universidad Nacional" />
+                      <Field label="Período"     value={edu.period}      onChange={v => updateEdu(edu.id, "period",      v)} placeholder="2018 - 2022" />
                     </div>
-                    <Field label="Título / Carrera" value={edu.degree}      onChange={v => updateEdu(edu.id, "degree", v)}      placeholder="Ingeniería de Sistemas" />
-                    <Field label="Descripción / Logros" value={edu.description || ""} onChange={v => updateEdu(edu.id, "description", v)} placeholder="Graduado con honores, tesis destacada..." multiline />
+                    <Field label="Título / Carrera"     value={edu.degree}           onChange={v => updateEdu(edu.id, "degree",      v)} placeholder="Ingeniería de Sistemas" />
+                    <Field label="Descripción / Logros" value={edu.description || ""} onChange={v => updateEdu(edu.id, "description", v)} placeholder="Graduado con honores..." multiline />
                   </div>
                 ))}
                 <button onClick={() => setEducation(p => [...p, emptyEdu()])} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, border: "1.5px dashed var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.85rem", transition: "border-color 0.18s, color 0.18s", width: "100%" }}
@@ -316,7 +312,7 @@ export default function CVEditorPage() {
               </div>
             )}
 
-            {/* ── Tab: Skills ── */}
+            {/* SKILLS */}
             {activeTab === "skills" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {skills.map((skill, i) => (
@@ -347,7 +343,7 @@ export default function CVEditorPage() {
                         Nivel: {["", "Básico", "Elemental", "Intermedio", "Avanzado", "Experto"][skill.level]}
                       </label>
                       <div style={{ display: "flex", gap: 6 }}>
-                        {[1, 2, 3, 4, 5].map(n => (
+                        {[1,2,3,4,5].map(n => (
                           <button key={n} onClick={() => updateSkill(skill.id, "level", n)} style={{ flex: 1, height: 8, borderRadius: 100, border: "none", cursor: "pointer", background: n <= skill.level ? (skill.category === "technical" ? "var(--accent)" : "#C77DFF") : "var(--border)", transition: "background 0.18s" }} />
                         ))}
                       </div>
@@ -366,11 +362,14 @@ export default function CVEditorPage() {
 
             {/* Actions */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button onClick={handleSave} style={{ flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: saved ? "#00E5A0" : "var(--accent)", color: "#000", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem", transition: "background 0.25s, box-shadow 0.18s" }}
+              <button onClick={() => handleSave(false)} disabled={saving} style={{ flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: saved ? "#00E5A0" : "var(--accent)", color: "#000", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem", transition: "background 0.25s, box-shadow 0.18s" }}
                 onMouseEnter={e => e.currentTarget.style.boxShadow = "var(--accent-glow)"}
                 onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
               >
-                <Save size={15} /> {saved ? "¡Guardado!" : "Guardar"}
+                <Save size={15} /> {saving ? "Guardando..." : saved ? "¡Guardado!" : "Guardar"}
+              </button>
+              <button onClick={() => handleSave(true)} disabled={saving} style={{ flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 20px", borderRadius: 10, cursor: "pointer", background: published ? "rgba(0,229,160,0.1)" : "transparent", color: published ? "#00E5A0" : "var(--muted)", border: `1.5px solid ${published ? "rgba(0,229,160,0.4)" : "var(--border)"}`, fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem", transition: "all 0.18s" }}>
+                <Globe size={15} /> {published ? "Publicado ✓" : "Publicar"}
               </button>
               <button onClick={() => setShowExport(true)} style={{ flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 20px", borderRadius: 10, cursor: "pointer", background: "transparent", color: "var(--text)", border: "1.5px solid var(--border)", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem", transition: "border-color 0.18s, color 0.18s" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
@@ -386,13 +385,11 @@ export default function CVEditorPage() {
         )}
       </div>
 
-      {/* ── Live preview ── */}
+      {/* Live preview */}
       <div className={`cv-preview-panel${showPreview ? " preview-visible" : ""}`}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <Eye size={14} color="var(--accent)" />
-          <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.82rem", color: "var(--muted)" }}>
-            Vista previa en tiempo real
-          </span>
+          <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.82rem", color: "var(--muted)" }}>Vista previa en tiempo real</span>
         </div>
         <CVPreview cvData={cvData} />
       </div>
@@ -421,7 +418,7 @@ function CVPreview({ cvData }) {
           {email    && <span>{email}</span>}
           {phone    && <span>{phone}</span>}
           {location && <span>{location}</span>}
-          {linkedin && <span style={{ color: "var(--accent)" }}>{linkedin}</span>}
+          {linkedin  && <span style={{ color: "var(--accent)" }}>{linkedin}</span>}
           {github   && <span style={{ color: "var(--accent)" }}>{github}</span>}
           {portfolio && <span style={{ color: "var(--accent)" }}>{portfolio}</span>}
         </div>

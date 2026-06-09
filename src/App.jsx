@@ -28,6 +28,7 @@ import CVPreviewPage from "./components/dashboard/CVPreviewPage";
 import AnalyticsPage from "./components/dashboard/AnalyticsPage";
 import SettingsPage from "./components/dashboard/SettingsPage";
 import InteractiveCVPage from "./components/cv/InteractiveCVPage";
+import PricingPage from "./components/PricingPage";
 
 const LandingPage = ({ mode, toggleMode }) => (
   <>
@@ -65,7 +66,7 @@ export default function App() {
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/cv/:slug" element={<InteractiveCVPage />} />
 
           <Route path="/dashboard" element={
@@ -73,37 +74,31 @@ export default function App() {
               <DashboardHome />
             </DashboardWrapper>
           } />
-
           <Route path="/dashboard/cvs" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Mis CVs">
               <CVListPage />
             </DashboardWrapper>
           } />
-
           <Route path="/dashboard/cvs/new" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Nuevo CV">
               <CVEditorPage />
             </DashboardWrapper>
           } />
-
           <Route path="/dashboard/cvs/:id/edit" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Editar CV">
               <CVEditorPage />
             </DashboardWrapper>
           } />
-
           <Route path="/dashboard/preview" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Vista previa">
               <CVPreviewPage />
             </DashboardWrapper>
           } />
-
           <Route path="/dashboard/analytics" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Analíticas">
               <AnalyticsPage />
             </DashboardWrapper>
           } />
-
           <Route path="/dashboard/settings" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Configuración">
               <SettingsPage />
