@@ -68,7 +68,7 @@ export default function PricingPage() {
     script.setAttribute("data-amount-in-cents", String(plan.price * 100));
     script.setAttribute("data-reference", `${plan.wompiRef}_${user.id}_${Date.now()}`);
     script.setAttribute("data-customer-email", user.email);
-    script.setAttribute("data-redirect-url", `${window.location.origin}/dashboard?payment=success&plan=${plan.id}`);
+    script.setAttribute("data-redirect-url", `${window.location.origin}/checkout/success?gateway=wompi&plan=${plan.id}`);
     document.body.appendChild(script);
 
     // Trigger click en el botón de Wompi una vez cargado

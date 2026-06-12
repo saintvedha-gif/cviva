@@ -79,3 +79,11 @@ export async function updateProfile(userId, updates) {
     .single();
   return { data, error };
 }
+// ── CV Analytics ──
+export async function incrementCVViews(cvId) {
+  await supabase.rpc("increment_cv_views", { cv_id: cvId });
+}
+
+export async function incrementCVDownloads(cvId) {
+  await supabase.rpc("increment_cv_downloads", { cv_id: cvId });
+}

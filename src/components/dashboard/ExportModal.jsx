@@ -3,6 +3,7 @@ import { useState } from "react";
 import { X, FileText, Download, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { exportToPDF } from "../../lib/exportPDF";
 import { exportToWord } from "../../lib/exportWord";
+import { incrementCVDownloads } from "../../lib/supabase";
 
 const FORMATS = [
   {
@@ -21,7 +22,7 @@ const FORMATS = [
   },
 ];
 
-const ExportModal = ({ isOpen, onClose, cvData, previewElementId = "cv-preview" }) => {
+const ExportModal = ({ isOpen, onClose, cvData, cvId, previewElementId = "cv-preview" }) => {
   const [selected, setSelected] = useState("pdf");
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [errorMsg, setErrorMsg] = useState("");
@@ -40,6 +41,7 @@ const ExportModal = ({ isOpen, onClose, cvData, previewElementId = "cv-preview" 
         await exportToWord(cvData, `${fileName}.docx`);
       }
       setStatus("success");
+      if (cvId) incrementCVDownloads(cvId);
       setTimeout(() => setStatus("idle"), 2500);
     } catch (err) {
       setErrorMsg(err.message || "Error al exportar");

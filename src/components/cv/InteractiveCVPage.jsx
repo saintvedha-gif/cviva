@@ -7,7 +7,7 @@ import {
   Zap, ExternalLink, Award, FolderOpen
 } from "lucide-react";
 import ExportModal from "../dashboard/ExportModal";
-import { getCVBySlug } from "../../lib/supabase";
+import { getCVBySlug, incrementCVViews } from "../../lib/supabase";
 
 const ACCENT_COLORS = ["#00E5FF", "#FFD166", "#FF6B6B", "#C77DFF", "#00E5A0", "#FF9F1C"];
 
@@ -77,8 +77,12 @@ export default function InteractiveCVPage() {
       return;
     }
     getCVBySlug(slug).then(({ data }) => {
-      if (data?.cv_data) setCvData(data.cv_data);
-      else setNotFound(true);
+      if (data?.cv_data) {
+        setCvData(data.cv_data);
+        incrementCVViews(data.id); // registrar vista
+      } else {
+        setNotFound(true);
+      }
       setLoadingCV(false);
     });
   }, [slug]);

@@ -26,7 +26,10 @@ export const AuthProvider = ({ children }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+      },
     });
     return { data, error };
   };
@@ -39,7 +42,8 @@ export const AuthProvider = ({ children }) => {
   const signInWithGoogle = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/confirm` },    });
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
     return { data, error };
   };
 
