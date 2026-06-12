@@ -1,11 +1,11 @@
 // src/components/dashboard/CVEditorPage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus, Trash2, Save, Eye, Upload, User, Briefcase, GraduationCap, Wrench, FileText, Globe } from "lucide-react";
+import { Plus, Trash2, Save, Eye, Upload, User, Briefcase, GraduationCap, Wrench, FileText, Globe, Camera } from "lucide-react";
 import ExportModal from "./ExportModal";
 import CVUploader from "./CVUploader";
 import { useAuth } from "../../hooks/useAuth";
-import { getCVById, updateCV, createCV } from "../../lib/supabase";
+import { getCVById, updateCV, createCV, uploadCVPhoto } from "../../lib/supabase";
 
 const TABS = [
   { id: "info",       label: "Info",        icon: User },
@@ -44,15 +44,18 @@ export default function CVEditorPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [activeTab,    setActiveTab]    = useState("info");
-  const [showExport,   setShowExport]   = useState(false);
-  const [saved,        setSaved]        = useState(false);
-  const [saving,       setSaving]       = useState(false);
-  const [showPreview,  setShowPreview]  = useState(false);
-  const [showUploader, setShowUploader] = useState(true);
-  const [cvId,         setCvId]         = useState(id && id !== "new" ? id : null);
-  const [cvTitle,      setCvTitle]      = useState("Mi CV");
-  const [published,    setPublished]    = useState(false);
+  const [activeTab,      setActiveTab]      = useState("info");
+  const [showExport,     setShowExport]     = useState(false);
+  const [saved,          setSaved]          = useState(false);
+  const [saving,         setSaving]         = useState(false);
+  const [showPreview,    setShowPreview]    = useState(false);
+  const [showUploader,   setShowUploader]   = useState(true);
+  const [cvId,           setCvId]           = useState(id && id !== "new" ? id : null);
+  const [cvTitle,        setCvTitle]        = useState("Mi CV");
+  const [published,      setPublished]      = useState(false);
+  const [photo,          setPhoto]          = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoRef = useRef();
 
   const [info, setInfo] = useState({
     name: "", role: "", email: "", phone: "",
@@ -83,6 +86,7 @@ export default function CVEditorPage() {
           portfolio: d.portfolio || "",
           summary:   d.summary   || "",
         });
+        if (d.photo)             setPhoto(d.photo);
         if (d.experience?.length) setExperience(d.experience);
         if (d.education?.length)  setEducation(d.education);
         if (d.skills?.length) setSkills(
@@ -96,7 +100,7 @@ export default function CVEditorPage() {
     });
   }, [id]);
 
-  const cvData = { ...info, experience, education, skills };
+  const cvData = { ...info, photo, experience, education, skills };
 
   const handleSave = async (publishFlag) => {
     setSaving(true);
@@ -134,6 +138,7 @@ export default function CVEditorPage() {
       portfolio: parsed.portfolio || "",
       summary:   parsed.summary   || "",
     });
+    if (parsed.photo) setPhoto(parsed.photo);
     setExperience(parsed.experience?.length ? parsed.experience : [emptyExp()]);
     setEducation(parsed.education?.length   ? parsed.education  : [emptyEdu()]);
     if (parsed.skills?.length) {
@@ -148,16 +153,26 @@ export default function CVEditorPage() {
     setShowUploader(false);
   };
 
-  const updateExp  = (id, f, v) => setExperience(p => p.map(e => e.id === id ? { ...e, [f]: v } : e));
-  const removeExp  = (id)       => setExperience(p => p.filter(e => e.id !== id));
-  const updateEdu  = (id, f, v) => setEducation(p => p.map(e => e.id === id ? { ...e, [f]: v } : e));
-  const removeEdu  = (id)       => setEducation(p => p.filter(e => e.id !== id));
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    const tempId = cvId || "temp";
+    const { url, error } = await uploadCVPhoto(user.id, tempId, file);
+    if (!error) setPhoto(url);
+    setUploadingPhoto(false);
+  };
+
+  const updateExp   = (id, f, v) => setExperience(p => p.map(e => e.id === id ? { ...e, [f]: v } : e));
+  const removeExp   = (id)       => setExperience(p => p.filter(e => e.id !== id));
+  const updateEdu   = (id, f, v) => setEducation(p => p.map(e => e.id === id ? { ...e, [f]: v } : e));
+  const removeEdu   = (id)       => setEducation(p => p.filter(e => e.id !== id));
   const updateSkill = (id, f, v) => setSkills(p => p.map(s => s.id === id ? { ...s, [f]: v } : s));
   const removeSkill = (id)       => setSkills(p => p.filter(s => s.id !== id));
 
-  const addResp    = (expId)         => setExperience(p => p.map(e => e.id === expId ? { ...e, responsibilities: [...(e.responsibilities || []), ""] } : e));
-  const updateResp = (expId, i, v)   => setExperience(p => p.map(e => e.id === expId ? { ...e, responsibilities: e.responsibilities.map((r, j) => j === i ? v : r) } : e));
-  const removeResp = (expId, i)      => setExperience(p => p.map(e => e.id === expId ? { ...e, responsibilities: e.responsibilities.filter((_, j) => j !== i) } : e));
+  const addResp    = (expId)       => setExperience(p => p.map(e => e.id === expId ? { ...e, responsibilities: [...(e.responsibilities || []), ""] } : e));
+  const updateResp = (expId, i, v) => setExperience(p => p.map(e => e.id === expId ? { ...e, responsibilities: e.responsibilities.map((r, j) => j === i ? v : r) } : e));
+  const removeResp = (expId, i)    => setExperience(p => p.map(e => e.id === expId ? { ...e, responsibilities: e.responsibilities.filter((_, j) => j !== i) } : e));
 
   return (
     <div className="cv-editor-layout">
@@ -208,6 +223,32 @@ export default function CVEditorPage() {
             {activeTab === "info" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20 }}>
                 <h3 style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", margin: 0 }}>Información personal</h3>
+
+                {/* Foto del CV */}
+                <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ position: "relative", width: 64, height: 64, flexShrink: 0 }}>
+                    {photo ? (
+                      <img src={photo} alt="foto CV"
+                        style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border)" }} />
+                    ) : (
+                      <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--surface-high)", border: "2px dashed var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <User size={24} color="var(--muted)" />
+                      </div>
+                    )}
+                    <button onClick={() => photoRef.current.click()} disabled={uploadingPhoto}
+                      style={{ position: "absolute", bottom: 0, right: 0, width: 22, height: 22, borderRadius: "50%", background: "var(--accent)", border: "2px solid var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                      <Camera size={11} color="#000" />
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ fontSize: "0.82rem", fontFamily: "Syne,sans-serif", fontWeight: 600, color: "var(--text)" }}>Foto del CV</span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
+                      {uploadingPhoto ? "Subiendo..." : "JPG, PNG — máx 2MB"}
+                    </span>
+                  </div>
+                  <input ref={photoRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
+                </div>
+
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
                   <Field label="Nombre completo" value={info.name}      onChange={v => setInfo(p => ({ ...p, name: v }))}      placeholder="Juan Pérez" />
                   <Field label="Cargo / Rol"      value={info.role}      onChange={v => setInfo(p => ({ ...p, role: v }))}      placeholder="Full Stack Developer" />
@@ -408,19 +449,25 @@ export default function CVEditorPage() {
 }
 
 function CVPreview({ cvData }) {
-  const { name, role, email, phone, location, linkedin, github, portfolio, summary, experience, education, skills } = cvData;
+  const { name, role, email, phone, location, linkedin, github, portfolio, summary, photo, experience, education, skills } = cvData;
   return (
     <div id="cv-preview" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, fontSize: "0.78rem", color: "var(--text)", lineHeight: 1.6, maxHeight: "calc(100vh - 160px)", overflowY: "auto" }}>
-      <div style={{ marginBottom: 18, paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
-        <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1.4rem", color: "var(--accent)", letterSpacing: "-0.03em", lineHeight: 1.1 }}>{name || "Tu nombre"}</div>
-        <div style={{ color: "var(--muted)", fontSize: "0.82rem", marginTop: 4 }}>{role || "Cargo / Rol"}</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 8, color: "var(--muted)", fontSize: "0.72rem" }}>
-          {email    && <span>{email}</span>}
-          {phone    && <span>{phone}</span>}
-          {location && <span>{location}</span>}
-          {linkedin  && <span style={{ color: "var(--accent)" }}>{linkedin}</span>}
-          {github   && <span style={{ color: "var(--accent)" }}>{github}</span>}
-          {portfolio && <span style={{ color: "var(--accent)" }}>{portfolio}</span>}
+      <div style={{ marginBottom: 18, paddingBottom: 16, borderBottom: "1px solid var(--border)", display: "flex", gap: 16, alignItems: "flex-start" }}>
+        {photo && (
+          <img src={photo} alt="foto"
+            style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border)", flexShrink: 0 }} />
+        )}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1.4rem", color: "var(--accent)", letterSpacing: "-0.03em", lineHeight: 1.1 }}>{name || "Tu nombre"}</div>
+          <div style={{ color: "var(--muted)", fontSize: "0.82rem", marginTop: 4 }}>{role || "Cargo / Rol"}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 8, color: "var(--muted)", fontSize: "0.72rem" }}>
+            {email    && <span>{email}</span>}
+            {phone    && <span>{phone}</span>}
+            {location && <span>{location}</span>}
+            {linkedin  && <span style={{ color: "var(--accent)" }}>{linkedin}</span>}
+            {github   && <span style={{ color: "var(--accent)" }}>{github}</span>}
+            {portfolio && <span style={{ color: "var(--accent)" }}>{portfolio}</span>}
+          </div>
         </div>
       </div>
       {summary && <PreviewSection title="Perfil"><p style={{ margin: 0, color: "var(--muted)" }}>{summary}</p></PreviewSection>}

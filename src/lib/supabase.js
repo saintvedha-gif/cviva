@@ -87,3 +87,27 @@ export async function incrementCVViews(cvId) {
 export async function incrementCVDownloads(cvId) {
   await supabase.rpc("increment_cv_downloads", { cv_id: cvId });
 }
+
+// Upload foto de perfil
+export const uploadAvatar = async (userId, file) => {
+  const ext = file.name.split(".").pop();
+  const path = `${userId}/avatar.${ext}`;
+  const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+  if (error) return { error };
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ avatar_url: data.publicUrl })
+    .eq("id", userId);
+  return { url: data.publicUrl, error: updateError };
+};
+
+// Upload foto del CV
+export const uploadCVPhoto = async (userId, cvId, file) => {
+  const ext = file.name.split(".").pop();
+  const path = `${userId}/${cvId}.${ext}`;
+  const { error } = await supabase.storage.from("cv-photos").upload(path, file, { upsert: true });
+  if (error) return { error };
+  const { data } = supabase.storage.from("cv-photos").getPublicUrl(path);
+  return { url: data.publicUrl, error: null };
+};
