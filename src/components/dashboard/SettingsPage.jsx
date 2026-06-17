@@ -76,9 +76,9 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tamaño (máx 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setAvatarError("La imagen debe pesar menos de 2MB.");
+    // Validar tamaño (máx 6MB)
+    if (file.size > 6 * 1024 * 1024) {
+      setAvatarError("La imagen debe pesar menos de 6MB.");
       return;
     }
 
@@ -150,7 +150,7 @@ export default function SettingsPage() {
               Foto de perfil
             </span>
             <span style={{ fontSize: "0.75rem", color: avatarError ? "var(--danger)" : "var(--muted)" }}>
-              {uploadingAvatar ? "Subiendo..." : avatarError || "JPG, PNG — máx 2MB"}
+              {uploadingAvatar ? "Subiendo..." : avatarError || "JPG, PNG — máx 6MB"}
             </span>
           </div>
 
