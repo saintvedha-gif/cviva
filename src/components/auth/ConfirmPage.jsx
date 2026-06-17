@@ -1,9 +1,10 @@
 // src/components/auth/ConfirmPage.jsx
 // Esta página es el destino del email de confirmación de Supabase.
-// Decide a dónde va el usuario según si tiene plan activo o no.
+// Decide a dónde va el usuario según si tiene plan activo o no,
+// leyendo la fuente de verdad real: profiles.plan en Supabase.
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { supabase, getProfile } from "../../lib/supabase";
 
 const ConfirmPage = () => {
   const navigate = useNavigate();
@@ -23,32 +24,26 @@ const ConfirmPage = () => {
 
       setMensaje("Cuenta confirmada. Revisando tu plan...");
 
-      // Acá verificamos si el usuario ya tiene un plan activo en tu backend.
-      // OPCIÓN A (con backend NestJS): descomentar esto cuando tengas el endpoint listo:
-      /*
-      try {
-        const res = await fetch("/api/payments/subscription", {
-          credentials: "include",
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const sub = await res.json();
-        if (sub?.status === "active") {
-          navigate("/dashboard");
-          return;
-        }
-      } catch (e) {
-        // si el backend falla, igual mandamos a pricing por seguridad
-      }
-      */
+      // Fuente de verdad real: tabla profiles, columna plan.
+      // (NUNCA usar user_metadata.plan_active — ese campo no existe
+      // en ningún flujo del proyecto, el webhook de Wompi actualiza
+      // directamente profiles.plan)
+      const { data: profile, error: profileError } = await getProfile(session.user.id);
 
-      // OPCIÓN B (sin backend todavía): chequeamos metadata de Supabase.
-      // Cuando tu webhook active el plan, guarda plan_active: true en user_metadata.
-      const planActivo = session.user?.user_metadata?.plan_active === true;
+      if (profileError) {
+        // Si por algún motivo no existe el profile aún (race condition
+        // con el trigger de creación), lo tratamos como plan free
+        console.warn("No se pudo leer el perfil:", profileError.message);
+        setMensaje("Redirigiendo a planes...");
+        navigate("/pricing");
+        return;
+      }
+
+      const planActivo = profile?.plan && profile.plan !== "free";
 
       if (planActivo) {
         navigate("/dashboard");
       } else {
-        // Sin plan activo → va a elegir un plan
         setMensaje("Redirigiendo a planes...");
         navigate("/pricing");
       }

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { useSubscription } from "../../hooks/useSubscription";
+import { supabase } from "../../lib/supabase";
 
 const Spinner = () => (
   <div style={{
@@ -18,10 +18,36 @@ const Spinner = () => (
   </div>
 );
 
-// requirePlan: si es true, además de sesión verifica que tenga plan pro/teams
+// requirePlan: si es true, además de sesión verifica que tenga plan pro/teams.
+// La query de plan SOLO se ejecuta cuando requirePlan=true, evitando
+// queries innecesarias a Supabase en páginas que no lo necesitan.
 const ProtectedRoute = ({ children, requirePlan = false }) => {
   const { user, loading: authLoading } = useAuth();
-  const { plan, loading: planLoading } = useSubscription();
+  const [plan, setPlan] = useState(null);
+  const [planLoading, setPlanLoading] = useState(requirePlan);
+
+  useEffect(() => {
+    if (!requirePlan || !user) {
+      setPlanLoading(false);
+      return;
+    }
+
+    let active = true;
+    setPlanLoading(true);
+
+    supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (!active) return;
+        setPlan(data?.plan || "free");
+        setPlanLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [requirePlan, user]);
 
   // Espera a que cargue auth. Si requirePlan, espera también el plan.
   if (authLoading || (requirePlan && planLoading)) return <Spinner />;

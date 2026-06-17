@@ -1,34 +1,118 @@
 // api/parse-cv.js
 export const config = { runtime: "edge" };
 
+const rateMap = new Map();
+const RATE_LIMIT  = 10;
+const RATE_WINDOW = 60000;
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const entry = rateMap.get(ip) || { count: 0, start: now };
+  if (now - entry.start > RATE_WINDOW) {
+    rateMap.set(ip, { count: 1, start: now });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  rateMap.set(ip, { count: entry.count + 1, start: entry.start });
+  return true;
+}
+
+const ALLOWED_ORIGINS = [
+  "https://cviva-nine.vercel.app/",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
+function getAllowedOrigin(requestOrigin) {
+  if (!requestOrigin) return ALLOWED_ORIGINS[0];
+  if (ALLOWED_ORIGINS.includes(requestOrigin)) return requestOrigin;
+  if (requestOrigin.endsWith(".vercel.app")) return requestOrigin;
+  return null;
+}
+
+function corsHeaders(origin) {
+  return {
+    "Access-Control-Allow-Origin":  origin || ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+}
+
 export default async function handler(req) {
+  const requestOrigin = req.headers.get("origin") || "";
+  const allowedOrigin = getAllowedOrigin(requestOrigin);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+    if (!allowedOrigin) return new Response("Forbidden", { status: 403 });
+    return new Response(null, { status: 204, headers: corsHeaders(allowedOrigin) });
   }
 
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders(allowedOrigin) });
+  }
+
+  if (!allowedOrigin) {
+    return new Response(
+      JSON.stringify({ error: "Origen no permitido" }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    "unknown";
+
+  if (!checkRateLimit(ip)) {
+    return new Response(
+      JSON.stringify({ error: "Demasiadas solicitudes. Espera un momento e intenta de nuevo." }),
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders(allowedOrigin),
+          "Content-Type": "application/json",
+          "Retry-After": "60",
+        },
+      }
+    );
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return new Response(
+      JSON.stringify({ error: "Servicio no configurado. Contacta al administrador." }),
+      { status: 503, headers: { ...corsHeaders(allowedOrigin), "Content-Type": "application/json" } }
+    );
+  }
+
+  let text;
+  try {
+    const body = await req.json();
+    text = body?.text;
+    if (!text || typeof text !== "string" || text.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: "El campo 'text' es requerido y no puede estar vacío." }),
+        { status: 400, headers: { ...corsHeaders(allowedOrigin), "Content-Type": "application/json" } }
+      );
+    }
+  } catch {
+    return new Response(
+      JSON.stringify({ error: "JSON inválido en el body." }),
+      { status: 400, headers: { ...corsHeaders(allowedOrigin), "Content-Type": "application/json" } }
+    );
   }
 
   try {
-    const { text } = await req.json();
-
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 1000,
+        max_tokens: 2000,
         messages: [
           {
             role: "user",
@@ -71,7 +155,7 @@ export default async function handler(req) {
     { "id": 1, "name": "nombre cert", "institution": "institución", "period": "año", "description": null, "url": null }
   ],
   "projects": [
-    { "id": 1, "title": "nombre", "role": "rol en el proyecto", "description": "descripción", "technologies": ["tech1"], "url": null }
+    { "id": 1, "title": "nombre", "role": "rol", "description": "descripción", "technologies": ["tech1"], "url": null }
   ],
   "languages": [
     { "name": "Español", "level": "Nativo" }
@@ -80,11 +164,10 @@ export default async function handler(req) {
   "extraSections": []
 }
 
-Notas importantes:
-- Para skills, nivel va de 1 (básico) a 5 (experto). Si no hay nivel claro, usa 3.
+Notas:
+- Para skills, nivel va de 1 (básico) a 5 (experto). Si no hay nivel claro usa 3.
 - Para skills category usa "technical" para técnicas y "soft" para blandas.
-- Si hay secciones que no encajan en ninguna categoría (voluntariado, publicaciones, premios, etc), agrégalas en extraSections con este formato: { "id": "voluntariado", "title": "Voluntariado", "items": [{ "title": "título", "subtitle": "organización", "description": "descripción" }] }
-- Para responsibilities extrae los bullets o logros de cada experiencia como array de strings.
+- Si hay secciones que no encajan (voluntariado, publicaciones, premios) agrégalas en extraSections: { "id": "voluntariado", "title": "Voluntariado", "items": [{ "title": "título", "subtitle": "organización", "description": "descripción" }] }
 
 Hoja de vida:
 ${text.slice(0, 10000)}`,
@@ -93,8 +176,17 @@ ${text.slice(0, 10000)}`,
       }),
     });
 
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.error("Anthropic error:", response.status, errBody);
+      return new Response(
+        JSON.stringify({ error: "Error al procesar el CV. Intenta de nuevo." }),
+        { status: 502, headers: { ...corsHeaders(allowedOrigin), "Content-Type": "application/json" } }
+      );
+    }
+
     const data = await response.json();
-    const raw = data.content?.[0]?.text || "{}";
+    const raw  = data.content?.[0]?.text || "{}";
 
     let parsed;
     try {
@@ -103,19 +195,19 @@ ${text.slice(0, 10000)}`,
       parsed = null;
     }
 
-    return new Response(JSON.stringify({ result: parsed }), {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return new Response(
+      JSON.stringify({ result: parsed }),
+      {
+        status: 200,
+        headers: { ...corsHeaders(allowedOrigin), "Content-Type": "application/json" },
+      }
+    );
+
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    console.error("parse-cv error:", err);
+    return new Response(
+      JSON.stringify({ error: "Error interno del servidor." }),
+      { status: 500, headers: { ...corsHeaders(allowedOrigin), "Content-Type": "application/json" } }
+    );
   }
 }

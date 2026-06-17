@@ -1,9 +1,10 @@
 // src/components/dashboard/CVUploader.jsx
 import { useState, useRef } from "react";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, X, Sparkles } from "lucide-react";
-import { extractTextFromFile, parseWithAI } from "../../lib/parseCV";
+import { extractTextFromFile, parseWithAI } from "../../lib/parseCVClient";
 
 const ACCEPTED = ".pdf,.doc,.docx";
+const MAX_SIZE_MB = 10;
 
 export default function CVUploader({ onParsed }) {
   const [status, setStatus] = useState("idle"); // idle | reading | parsing | done | error
@@ -14,6 +15,13 @@ export default function CVUploader({ onParsed }) {
 
   const handleFile = async (file) => {
     if (!file) return;
+
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      setErrorMsg(`El archivo supera ${MAX_SIZE_MB}MB. Sube uno más liviano.`);
+      setStatus("error");
+      return;
+    }
+
     setFileName(file.name);
     setErrorMsg("");
 
@@ -24,14 +32,17 @@ export default function CVUploader({ onParsed }) {
       setStatus("parsing");
       const parsed = await parseWithAI(text);
 
-      if (!parsed || !parsed.name) throw new Error("No se pudo extraer la información. Intenta con otro archivo.");
+      if (!parsed || !parsed.name) {
+        throw new Error("No se pudo extraer la información. Intenta con otro archivo.");
+      }
 
-      // Agregar IDs a experience y education
+      // Normalizar IDs para experience/education (la IA no los genera)
       const result = {
         ...parsed,
-        experience: (parsed.experience || []).map((e, i) => ({ ...e, id: Date.now() + i })),
-        education: (parsed.education || []).map((e, i) => ({ ...e, id: Date.now() + 100 + i })),
-        skills: Array.isArray(parsed.skills) ? parsed.skills.join(", ") : parsed.skills || "",
+        experience: (parsed.experience || []).map((e, i) => ({ ...e, id: e.id || Date.now() + i })),
+        education:  (parsed.education  || []).map((e, i) => ({ ...e, id: e.id || Date.now() + 100 + i })),
+        // skills ya viene como array de objetos { name, level, category } desde api/parse-cv.js
+        skills: Array.isArray(parsed.skills) ? parsed.skills : [],
       };
 
       setStatus("done");
@@ -107,7 +118,7 @@ export default function CVUploader({ onParsed }) {
             Arrastra tu CV aquí o haz click para seleccionar
           </div>
           <div style={{ fontSize: "0.78rem", color: "var(--muted)" }}>
-            PDF, DOC o DOCX · Máximo 10MB
+            PDF, DOC o DOCX · Máximo {MAX_SIZE_MB}MB
           </div>
         </div>
       ) : null}

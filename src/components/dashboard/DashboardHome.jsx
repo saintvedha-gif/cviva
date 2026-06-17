@@ -1,12 +1,13 @@
 // src/components/dashboard/DashboardHome.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText, Eye, TrendingUp, Plus, ArrowRight, Clock, Zap, Download, Trash2, AlertCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useSubscription } from "../../hooks/useSubscription";
 import { useCVs } from "../../hooks/useCVs";
 import { createCV } from "../../lib/supabase";
 import ExportModal from "./ExportModal";
+import OnboardingModal, { shouldShowOnboarding } from "./OnboardingModal";
 
 const StatCard = ({ icon: Icon, label, value, color, sub }) => (
   <div className="card" style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -27,8 +28,7 @@ const StatCard = ({ icon: Icon, label, value, color, sub }) => (
 
 const CVCard = ({ cv, onExport, onDelete }) => {
   const updatedAt = new Date(cv.updated_at);
-  const now = new Date();
-  const diffMs = now - updatedAt;
+  const diffMs = Date.now() - updatedAt.getTime();
   const diffH = Math.floor(diffMs / 3600000);
   const diffD = Math.floor(diffMs / 86400000);
   const timeAgo = diffH < 1 ? "hace menos de 1h" : diffH < 24 ? `hace ${diffH}h` : `hace ${diffD}d`;
@@ -53,15 +53,18 @@ const CVCard = ({ cv, onExport, onDelete }) => {
       </div>
 
       <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-        <Link to={`/dashboard/cvs/${cv.id}/edit`}
+        <Link
+          to={`/dashboard/cvs/${cv.id}/edit`}
           style={{ flex: 1, minWidth: 70, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontSize: "0.75rem", textDecoration: "none", fontFamily: "Syne,sans-serif", fontWeight: 600, transition: "border-color 0.18s, color 0.18s" }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
         >
           Editar
         </Link>
-        {cv.published && (
-          <Link to={`/cv/${cv.slug}`} target="_blank"
+        {cv.published && cv.slug && (
+          <Link
+            to={`/cv/${cv.slug}`}
+            target="_blank"
             style={{ flex: 1, minWidth: 70, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px", borderRadius: 8, background: "var(--accent)", color: "#000", fontSize: "0.75rem", textDecoration: "none", fontFamily: "Syne,sans-serif", fontWeight: 700, transition: "box-shadow 0.18s" }}
             onMouseEnter={e => e.currentTarget.style.boxShadow = "var(--accent-glow)"}
             onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
@@ -69,14 +72,16 @@ const CVCard = ({ cv, onExport, onDelete }) => {
             <Eye size={12} /> Ver
           </Link>
         )}
-        <button onClick={() => onExport(cv)}
+        <button
+          onClick={() => onExport(cv)}
           style={{ flex: 1, minWidth: 70, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontSize: "0.75rem", fontFamily: "Syne,sans-serif", fontWeight: 600, cursor: "pointer", transition: "border-color 0.18s, color 0.18s" }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--gold)"; e.currentTarget.style.color = "var(--gold)"; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
         >
           <Download size={12} /> Exportar
         </button>
-        <button onClick={() => onDelete(cv.id)}
+        <button
+          onClick={() => onDelete(cv.id)}
           style={{ width: 34, display: "flex", alignItems: "center", justifyContent: "center", padding: "8px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", transition: "border-color 0.18s, color 0.18s" }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--danger)"; e.currentTarget.style.color = "var(--danger)"; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
@@ -87,10 +92,10 @@ const CVCard = ({ cv, onExport, onDelete }) => {
 
       <div style={{ display: "flex", gap: 16, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
         <div style={{ fontSize: "0.72rem", color: "var(--muted)" }}>
-          <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, color: "var(--text)", fontSize: "0.88rem" }}>{cv.views}</span> vistas
+          <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, color: "var(--text)", fontSize: "0.88rem" }}>{cv.views || 0}</span> vistas
         </div>
         <div style={{ fontSize: "0.72rem", color: "var(--muted)" }}>
-          <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, color: "var(--text)", fontSize: "0.88rem" }}>{cv.downloads}</span> descargas
+          <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, color: "var(--text)", fontSize: "0.88rem" }}>{cv.downloads || 0}</span> descargas
         </div>
       </div>
     </div>
@@ -98,22 +103,32 @@ const CVCard = ({ cv, onExport, onDelete }) => {
 };
 
 const DashboardHome = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { plan, isFree } = useSubscription();
   const { cvs, loading, remove } = useCVs();
   const [exportTarget, setExportTarget] = useState(null);
   const [creating, setCreating] = useState(false);
-  const name = user?.user_metadata?.full_name?.split(" ")[0] || "ahí";
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
+  const name = user?.user_metadata?.full_name?.split(" ")[0] || "ahí";
   const FREE_LIMIT = 1;
   const canCreate = !isFree || cvs.length < FREE_LIMIT;
+
+  // Mostrar onboarding solo una vez, a usuarios sin CVs todavía
+  useEffect(() => {
+    if (!loading && cvs.length === 0 && shouldShowOnboarding()) {
+      setShowOnboarding(true);
+    }
+  }, [loading, cvs.length]);
 
   const handleNewCV = async () => {
     if (!canCreate) return;
     setCreating(true);
     const { data } = await createCV(user.id, "Mi nuevo CV");
     setCreating(false);
-    if (data) window.location.href = `/dashboard/cvs/${data.id}/edit`;
+    // ✅ navigate() en vez de window.location.href
+    if (data) navigate(`/dashboard/cvs/${data.id}/edit`);
   };
 
   const handleDelete = async (id) => {
@@ -121,13 +136,13 @@ const DashboardHome = () => {
     await remove(id);
   };
 
-  const totalViews = cvs.reduce((s, cv) => s + (cv.views || 0), 0);
+  const totalViews     = cvs.reduce((s, cv) => s + (cv.views     || 0), 0);
   const totalDownloads = cvs.reduce((s, cv) => s + (cv.downloads || 0), 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
-      {/* Welcome */}
+      {/* Bienvenida */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div>
           <h2 style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "clamp(1.3rem,3vw,1.7rem)", color: "var(--text)", margin: 0, letterSpacing: "-0.02em" }}>
@@ -148,7 +163,7 @@ const DashboardHome = () => {
         </button>
       </div>
 
-      {/* Free limit warning */}
+      {/* Alerta límite free */}
       {isFree && cvs.length >= FREE_LIMIT && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderRadius: 12, background: "rgba(255,159,28,0.08)", border: "1px solid rgba(255,159,28,0.25)" }}>
           <AlertCircle size={16} color="#FF9F1C" style={{ flexShrink: 0 }} />
@@ -163,13 +178,13 @@ const DashboardHome = () => {
 
       {/* Stats */}
       <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
-        <StatCard icon={FileText}   label="CVs creados"    value={loading ? "—" : cvs.length}        color="#00E5FF" sub="Total" />
-        <StatCard icon={Eye}        label="Vistas totales" value={loading ? "—" : totalViews}         color="#FFD166" sub="Total" />
-        <StatCard icon={TrendingUp} label="Descargas"      value={loading ? "—" : totalDownloads}     color="#C77DFF" sub="Total" />
+        <StatCard icon={FileText}   label="CVs creados"    value={loading ? "—" : cvs.length}    color="#00E5FF" sub="Total" />
+        <StatCard icon={Eye}        label="Vistas totales" value={loading ? "—" : totalViews}     color="#FFD166" sub="Total" />
+        <StatCard icon={TrendingUp} label="Descargas"      value={loading ? "—" : totalDownloads} color="#C77DFF" sub="Total" />
         <StatCard icon={Zap}        label="Plan activo"    value={plan.charAt(0).toUpperCase() + plan.slice(1)} color="#00E5A0" sub="Actual" />
       </div>
 
-      {/* CVs */}
+      {/* CVs recientes */}
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
           <h3 style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "1rem", color: "var(--text)", margin: 0 }}>Mis CVs</h3>
@@ -191,7 +206,10 @@ const DashboardHome = () => {
             </div>
             <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1.1rem", color: "var(--text)" }}>Aún no tienes CVs</div>
             <div style={{ fontSize: "0.88rem", color: "var(--muted)", maxWidth: 300, lineHeight: 1.6 }}>Crea tu primer CV interactivo en menos de 5 minutos.</div>
-            <button onClick={handleNewCV} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--accent)", color: "#000", padding: "12px 24px", borderRadius: 10, border: "none", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
+            <button
+              onClick={handleNewCV}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--accent)", color: "#000", padding: "12px 24px", borderRadius: 10, border: "none", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}
+            >
               <Plus size={16} strokeWidth={3} /> Crear mi primer CV
             </button>
           </div>
@@ -204,16 +222,20 @@ const DashboardHome = () => {
         )}
       </div>
 
-      {/* Upgrade banner — solo si es free */}
+      {/* Banner upgrade free */}
       {isFree && (
         <div style={{ padding: "24px 28px", borderRadius: 18, background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, var(--surface)), var(--surface))", border: "1px solid color-mix(in srgb, var(--accent) 30%, var(--border))", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
           <div>
             <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1rem", color: "var(--text)", marginBottom: 4 }}>
               ✨ Estás en el plan Free
             </div>
-            <div style={{ fontSize: "0.82rem", color: "var(--muted)" }}>Sube a Pro: CVs ilimitados, exportación Word, analíticas y sin marca de agua.</div>
+            <div style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
+              Sube a Pro: CVs ilimitados, exportación Word, analíticas y sin marca de agua.
+            </div>
           </div>
-          <Link to="/pricing" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--accent)", color: "#000", padding: "10px 20px", borderRadius: 9, textDecoration: "none", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem", flexShrink: 0, transition: "box-shadow 0.18s" }}
+          <Link
+            to="/pricing"
+            style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--accent)", color: "#000", padding: "10px 20px", borderRadius: 9, textDecoration: "none", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem", flexShrink: 0, transition: "box-shadow 0.18s" }}
             onMouseEnter={e => e.currentTarget.style.boxShadow = "var(--accent-glow)"}
             onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
           >
@@ -222,7 +244,24 @@ const DashboardHome = () => {
         </div>
       )}
 
-      <ExportModal isOpen={!!exportTarget} onClose={() => setExportTarget(null)} cvData={exportTarget?.cv_data} previewElementId="cv-preview" />
+      <ExportModal
+        isOpen={!!exportTarget}
+        onClose={() => setExportTarget(null)}
+        cvData={exportTarget?.cv_data}
+        cvId={exportTarget?.id}
+        previewElementId="cv-preview"
+      />
+
+      {showOnboarding && (
+        <OnboardingModal
+          onClose={() => setShowOnboarding(false)}
+          onStart={() => {
+            setShowOnboarding(false);
+            handleNewCV();
+          }}
+        />
+      )}
+
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
     </div>
   );
