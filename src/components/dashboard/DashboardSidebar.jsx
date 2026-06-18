@@ -26,6 +26,7 @@ const DashboardSidebar = ({ mobileOpen, onMobileClose }) => {
 
   const name  = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuario";
   const email = user?.email || "";
+  const avatarUrl = user?.user_metadata?.avatar_url || null;
 
   return (
     <>
@@ -123,9 +124,17 @@ const DashboardSidebar = ({ mobileOpen, onMobileClose }) => {
         <div style={{ padding: collapsed ? "12px 8px" : "12px", borderTop:"1px solid var(--border)", flexShrink:0 }}>
           {!collapsed && (
             <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 8px", borderRadius:10, marginBottom:6, background:"var(--surface-high)", border:"1px solid var(--border)" }}>
-              <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg, var(--accent), #0062FF)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Syne,sans-serif", fontWeight:800, color:"#000", fontSize:"0.75rem", flexShrink:0 }}>
-                {initials}
-              </div>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="avatar"
+                  style={{ width:32, height:32, borderRadius:"50%", objectFit:"cover", flexShrink:0, border:"2px solid var(--border)" }}
+                />
+              ) : (
+                <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg, var(--accent), #0062FF)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Syne,sans-serif", fontWeight:800, color:"#000", fontSize:"0.75rem", flexShrink:0 }}>
+                  {initials}
+                </div>
+              )}
               <div style={{ minWidth:0 }}>
                 <div style={{ fontFamily:"Syne,sans-serif", fontWeight:700, fontSize:"0.8rem", color:"var(--text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{name}</div>
                 <div style={{ fontSize:"0.7rem", color:"var(--muted)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{email}</div>

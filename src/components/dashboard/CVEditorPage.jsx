@@ -243,7 +243,7 @@ export default function CVEditorPage() {
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: "0.82rem", fontFamily: "Syne,sans-serif", fontWeight: 600, color: "var(--text)" }}>Foto del CV</span>
                     <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
-                      {uploadingPhoto ? "Subiendo..." : "JPG, PNG — máx 2MB"}
+                      {uploadingPhoto ? "Subiendo..." : "JPG, PNG — máx 6MB"}
                     </span>
                   </div>
                   <input ref={photoRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
@@ -451,8 +451,7 @@ export default function CVEditorPage() {
 function CVPreview({ cvData }) {
   const { name, role, email, phone, location, linkedin, github, portfolio, summary, photo, experience, education, skills } = cvData;
   return (
-    <div id="cv-preview" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, fontSize: "0.78rem", color: "var(--text)", lineHeight: 1.6, maxHeight: "calc(100vh - 160px)", overflowY: "auto" }}>
-      <div style={{ marginBottom: 18, paddingBottom: 16, borderBottom: "1px solid var(--border)", display: "flex", gap: 16, alignItems: "flex-start" }}>
+    <div id="cv-preview" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, fontSize: "0.78rem", color: "var(--text)", lineHeight: 1.6, maxHeight: "calc(100vh - 160px)", overflowY: "auto", overflowX: "hidden", wordBreak: "break-word", minWidth: 0 }}>      <div style={{ marginBottom: 18, paddingBottom: 16, borderBottom: "1px solid var(--border)", display: "flex", gap: 16, alignItems: "flex-start" }}>
         {photo && (
           <img src={photo} alt="foto"
             style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border)", flexShrink: 0 }} />
