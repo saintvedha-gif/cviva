@@ -1,9 +1,15 @@
 // src/components/PricingPage.jsx
 import { useState } from "react";
-import { Check, Star, ArrowRight, Zap } from "lucide-react";
+import { Check, Star, ArrowRight, Zap, Lock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useSubscription } from "../hooks/useSubscription";
+
+const WOMPI_ACTIVE = !!(
+  import.meta.env.VITE_WOMPI_PUBLIC_KEY &&
+  import.meta.env.VITE_WOMPI_PUBLIC_KEY !== "pub_test_XXXXXXXXX" &&
+  import.meta.env.VITE_WOMPI_PUBLIC_KEY !== "pub_test_REEMPLAZAR_AQUI"
+);
 
 const PLANS = [
   {
@@ -14,7 +20,7 @@ const PLANS = [
     period: "siempre",
     desc: "Para explorar y empezar.",
     features: ["1 CV interactivo", "URL pública", "Exportar PDF", "Marca CViva"],
-    cta: "Tu plan actual",
+    cta: "Comenzar gratis",
     highlight: false,
     color: "var(--border)",
   },
@@ -52,32 +58,60 @@ export default function PricingPage() {
   const { plan: currentPlan } = useSubscription();
   const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState(null);
+  const [wompiError, setWompiError] = useState("");
 
   const handlePay = async (plan) => {
-    if (!user) { navigate("/auth/register"); return; }
-    if (plan.id === "free" || plan.id === currentPlan) return;
+    // Sin sesión → registro
+    if (!user) {
+      navigate("/auth/register");
+      return;
+    }
+
+    // Plan free → ir al dashboard directamente
+    if (plan.id === "free") {
+      navigate("/dashboard");
+      return;
+    }
+
+    // Ya tiene ese plan → no hacer nada
+    if (plan.id === currentPlan) return;
+
+    // Wompi no configurado aún → mostrar mensaje claro
+    if (!WOMPI_ACTIVE) {
+      setWompiError("Los pagos estarán disponibles muy pronto. ¡Mantente pendiente!");
+      setTimeout(() => setWompiError(""), 4000);
+      return;
+    }
 
     setLoadingPlan(plan.id);
+    setWompiError("");
 
-    // Wompi checkout — abre el widget de pago
-    const script = document.createElement("script");
-    script.src = "https://checkout.wompi.co/widget.js";
-    script.setAttribute("data-render", "button");
-    script.setAttribute("data-public-key", import.meta.env.VITE_WOMPI_PUBLIC_KEY || "pub_test_XXXXXXXXX");
-    script.setAttribute("data-currency", "COP");
-    script.setAttribute("data-amount-in-cents", String(plan.price * 100));
-    script.setAttribute("data-reference", `${plan.wompiRef}_${user.id}_${Date.now()}`);
-    script.setAttribute("data-customer-email", user.email);
-    script.setAttribute("data-redirect-url", `${window.location.origin}/checkout/success?gateway=wompi&plan=${plan.id}`);
-    document.body.appendChild(script);
+    try {
+      const script = document.createElement("script");
+      script.src = "https://checkout.wompi.co/widget.js";
+      script.setAttribute("data-render", "button");
+      script.setAttribute("data-public-key", import.meta.env.VITE_WOMPI_PUBLIC_KEY);
+      script.setAttribute("data-currency", "COP");
+      script.setAttribute("data-amount-in-cents", String(plan.price * 100));
+      script.setAttribute("data-reference", `${plan.wompiRef}_${user.id}_${Date.now()}`);
+      script.setAttribute("data-customer-email", user.email);
+      script.setAttribute("data-redirect-url", `${window.location.origin}/checkout/success?gateway=wompi&plan=${plan.id}`);
 
-    // Trigger click en el botón de Wompi una vez cargado
-    script.onload = () => {
-      const btn = document.querySelector("[data-wompi-checkout]");
-      if (btn) btn.click();
+      script.onload = () => {
+        const btn = document.querySelector("[data-wompi-checkout]");
+        if (btn) btn.click();
+        setLoadingPlan(null);
+      };
+      script.onerror = () => {
+        setLoadingPlan(null);
+        setWompiError("No se pudo cargar el widget de pago. Intenta de nuevo.");
+      };
+
+      document.body.appendChild(script);
+    } catch {
       setLoadingPlan(null);
-    };
-    script.onerror = () => setLoadingPlan(null);
+      setWompiError("Error inesperado. Intenta de nuevo.");
+    }
   };
 
   return (
@@ -103,7 +137,8 @@ export default function PricingPage() {
           <p style={{ color: "var(--muted)", marginTop: 14, fontSize: "1rem" }}>
             Paga con tarjeta, Nequi, Daviplata o PSE. Cancela cuando quieras.
           </p>
-          {/* Payment methods */}
+
+          {/* Métodos de pago */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
             {["Nequi", "Daviplata", "PSE", "Visa", "Mastercard"].map(m => (
               <span key={m} style={{ padding: "4px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", fontSize: "0.75rem", color: "var(--muted)", fontFamily: "Syne,sans-serif", fontWeight: 600 }}>
@@ -111,11 +146,29 @@ export default function PricingPage() {
               </span>
             ))}
           </div>
+
+          {/* Aviso si Wompi no está activo */}
+          {!WOMPI_ACTIVE && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 20, padding: "10px 18px", borderRadius: 10, background: "rgba(255,159,28,0.08)", border: "1px solid rgba(255,159,28,0.25)", fontSize: "0.82rem", color: "#FF9F1C" }}>
+              <Lock size={13} /> Los planes de pago estarán disponibles muy pronto
+            </div>
+          )}
         </div>
 
+        {/* Error de pago */}
+        {wompiError && (
+          <div style={{ textAlign: "center", marginBottom: 24, padding: "12px 20px", borderRadius: 10, background: "rgba(255,159,28,0.08)", border: "1px solid rgba(255,159,28,0.25)", fontSize: "0.85rem", color: "#FF9F1C" }}>
+            {wompiError}
+          </div>
+        )}
+
+        {/* Cards de planes */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, alignItems: "start" }}>
           {PLANS.map(plan => {
             const isCurrent = plan.id === currentPlan;
+            const isPaid = plan.id !== "free";
+            const isDisabled = isCurrent || (isPaid && !WOMPI_ACTIVE);
+
             return (
               <div key={plan.id} style={{
                 padding: "36px 28px", borderRadius: 20,
@@ -134,6 +187,7 @@ export default function PricingPage() {
                     Plan actual
                   </div>
                 )}
+
                 <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem", color: plan.highlight ? plan.color : "var(--muted)", marginBottom: 8 }}>
                   {plan.name}
                 </div>
@@ -156,21 +210,33 @@ export default function PricingPage() {
 
                 <button
                   onClick={() => handlePay(plan)}
-                  disabled={isCurrent || loadingPlan === plan.id}
+                  disabled={isDisabled || loadingPlan === plan.id}
                   style={{
                     width: "100%", padding: "13px", borderRadius: 11,
                     border: plan.highlight ? "none" : "1.5px solid var(--border)",
-                    background: isCurrent ? "var(--surface-high)" : plan.highlight ? "var(--accent)" : "transparent",
+                    background: isCurrent
+                      ? "var(--surface-high)"
+                      : plan.highlight
+                        ? "var(--accent)"
+                        : "transparent",
                     color: isCurrent ? "var(--muted)" : plan.highlight ? "#000" : "var(--text)",
                     fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.92rem",
-                    cursor: isCurrent ? "default" : "pointer",
+                    cursor: isDisabled ? "default" : "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    transition: "box-shadow 0.18s, transform 0.18s",
+                    transition: "box-shadow 0.18s",
+                    opacity: isPaid && !WOMPI_ACTIVE && !isCurrent ? 0.6 : 1,
                   }}
-                  onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.boxShadow = plan.highlight ? "var(--accent-glow)" : "0 0 0 1px var(--accent)"; }}
+                  onMouseEnter={e => { if (!isDisabled) e.currentTarget.style.boxShadow = plan.highlight ? "var(--accent-glow)" : "0 0 0 1px var(--accent)"; }}
                   onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
                 >
-                  {loadingPlan === plan.id ? "Cargando..." : isCurrent ? "Plan actual ✓" : <>{plan.cta} <ArrowRight size={15} /></>}
+                  {loadingPlan === plan.id
+                    ? "Cargando..."
+                    : isCurrent
+                      ? "Plan actual ✓"
+                      : isPaid && !WOMPI_ACTIVE
+                        ? <><Lock size={13} /> Próximamente</>
+                        : <>{plan.cta} <ArrowRight size={15} /></>
+                  }
                 </button>
               </div>
             );

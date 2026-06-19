@@ -1,6 +1,6 @@
 // src/App.jsx
 import { useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
 import GlobalStyles from "./GlobalStyles";
 import { AuthProvider } from "./hooks/useAuth";
 
@@ -60,6 +60,19 @@ const DashboardWrapper = ({ mode, toggleMode, title, children }) => (
   </ProtectedRoute>
 );
 
+// Wrapper que extrae el :id de la URL y lo pasa como key al CVEditorPage.
+// Esto fuerza que React desmonte y remonte el componente cada vez que
+// cambia el ID del CV, resolviendo el bug donde el editor no se limpiaba
+// al navegar de un CV a otro o al crear uno nuevo.
+const CVEditorWrapper = ({ mode, toggleMode }) => {
+  const { id } = useParams();
+  return (
+    <DashboardWrapper mode={mode} toggleMode={toggleMode} title={id ? "Editar CV" : "Nuevo CV"}>
+      <CVEditorPage key={id || "new"} />
+    </DashboardWrapper>
+  );
+};
+
 export default function App() {
   const [mode, setMode] = useState("dark");
   const toggleMode = () => setMode(m => m === "dark" ? "light" : "dark");
@@ -69,55 +82,59 @@ export default function App() {
       <GlobalStyles mode={mode} />
       <AuthProvider>
         <Routes>
+          {/* Landing */}
           <Route path="/" element={<LandingPage mode={mode} toggleMode={toggleMode} />} />
 
+          {/* Auth */}
           <Route path="/auth/login"           element={<LoginPage />} />
           <Route path="/auth/register"        element={<RegisterPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
           <Route path="/auth/confirm"         element={<ConfirmPage />} />
 
+          {/* Pagos */}
           <Route path="/pricing"          element={<PricingPage />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
 
+          {/* CV público — accesible sin login */}
           <Route path="/cv/:slug" element={<InteractiveCVPage />} />
 
+          {/* Dashboard */}
           <Route path="/dashboard" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Dashboard">
               <DashboardHome />
             </DashboardWrapper>
           } />
+
           <Route path="/dashboard/cvs" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Mis CVs">
               <CVListPage />
             </DashboardWrapper>
           } />
-          <Route path="/dashboard/cvs/new" element={
-            <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Nuevo CV">
-              <CVEditorPage />
-            </DashboardWrapper>
-          } />
-          <Route path="/dashboard/cvs/:id/edit" element={
-            <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Editar CV">
-              <CVEditorPage />
-            </DashboardWrapper>
-          } />
+
+          {/* Editor con key dinámica — fix navegación rota */}
+          <Route path="/dashboard/cvs/new"       element={<CVEditorWrapper mode={mode} toggleMode={toggleMode} />} />
+          <Route path="/dashboard/cvs/:id/edit"  element={<CVEditorWrapper mode={mode} toggleMode={toggleMode} />} />
+
           <Route path="/dashboard/preview" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Vista previa">
               <CVPreviewPage />
             </DashboardWrapper>
           } />
+
           <Route path="/dashboard/analytics" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Analíticas">
               <AnalyticsPage />
             </DashboardWrapper>
           } />
+
           <Route path="/dashboard/settings" element={
             <DashboardWrapper mode={mode} toggleMode={toggleMode} title="Configuración">
               <SettingsPage />
             </DashboardWrapper>
           } />
 
+          {/* Catch-all → home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

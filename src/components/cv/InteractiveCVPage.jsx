@@ -72,7 +72,7 @@ export default function InteractiveCVPage() {
 
   useEffect(() => {
     if (!slug) {
-      setCvData(DEMO_CV);
+      setNotFound(true);
       setLoadingCV(false);
       return;
     }
@@ -95,10 +95,26 @@ export default function InteractiveCVPage() {
   );
 
   if (notFound) return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24 }}>
-      <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1.5rem", color: "var(--text)" }}>CV no encontrado</div>
-      <div style={{ color: "var(--muted)", textAlign: "center" }}>Este CV no existe o no está publicado.</div>
-      <Link to="/" style={{ color: "var(--accent)", fontFamily: "Syne,sans-serif", fontWeight: 600, textDecoration: "none" }}>← Volver al inicio</Link>
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, padding: 24, textAlign: "center" }}>
+      <div style={{ width: 72, height: 72, borderRadius: 20, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>
+        🔍
+      </div>
+      <div>
+        <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "1.5rem", color: "var(--text)", marginBottom: 8 }}>
+          CV no encontrado
+        </div>
+        <div style={{ color: "var(--muted)", fontSize: "0.9rem", maxWidth: 320, lineHeight: 1.6 }}>
+          Este CV no existe, fue eliminado o su dueño lo despublicó.
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+        <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: 10, background: "var(--accent)", color: "#000", textDecoration: "none", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem" }}>
+          Ir al inicio
+        </Link>
+        <Link to="/auth/register" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--text)", textDecoration: "none", fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.88rem" }}>
+          Crear mi CV gratis →
+        </Link>
+      </div>
     </div>
   );
 
