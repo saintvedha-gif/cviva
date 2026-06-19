@@ -1,3 +1,4 @@
+// src/hooks/useAuth.jsx
 import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "../lib/supabase";
 
@@ -8,13 +9,11 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -26,7 +25,10 @@ export const AuthProvider = ({ children }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        redirectTo: `${window.location.origin}/auth/confirm`,
+      },
     });
     return { data, error };
   };
@@ -39,7 +41,8 @@ export const AuthProvider = ({ children }) => {
   const signInWithGoogle = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/confirm` },    });
+      options: { redirectTo: `${window.location.origin}/auth/confirm` },
+    });
     return { data, error };
   };
 

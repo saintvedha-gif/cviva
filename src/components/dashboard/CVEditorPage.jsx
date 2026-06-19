@@ -48,6 +48,7 @@ export default function CVEditorPage() {
   const [showExport,     setShowExport]     = useState(false);
   const [saved,          setSaved]          = useState(false);
   const [saving,         setSaving]         = useState(false);
+  const [saveError,      setSaveError]      = useState("");
   const [showPreview,    setShowPreview]    = useState(false);
   const [showUploader,   setShowUploader]   = useState(true);
   const [cvId,           setCvId]           = useState(id && id !== "new" ? id : null);
@@ -104,26 +105,38 @@ export default function CVEditorPage() {
 
   const handleSave = async (publishFlag) => {
     setSaving(true);
+    setSaveError("");
     const shouldPublish = publishFlag !== undefined ? publishFlag : published;
     const payload = {
       cv_data: cvData,
       title: cvData.name ? `CV — ${cvData.name}` : cvTitle,
       published: shouldPublish,
     };
-    if (cvId) {
-      await updateCV(cvId, payload);
-      if (publishFlag !== undefined) setPublished(publishFlag);
-    } else {
-      const { data } = await createCV(user.id, payload.title);
-      if (data) {
-        await updateCV(data.id, { cv_data: cvData, published: shouldPublish });
-        setCvId(data.id);
-        navigate(`/dashboard/cvs/${data.id}/edit`, { replace: true });
+
+    try {
+      if (cvId) {
+        const { error } = await updateCV(cvId, payload);
+        if (error) throw new Error(error.message || "Error al guardar");
+        if (publishFlag !== undefined) setPublished(publishFlag);
+      } else {
+        // Pasar el nombre real de la persona para que el slug quede limpio
+        const { data, error } = await createCV(user.id, payload.title, cvData.name);
+        if (error) throw new Error(error.message || "Error al crear el CV");
+        if (data) {
+          const { error: updateError } = await updateCV(data.id, { cv_data: cvData, published: shouldPublish });
+          if (updateError) throw new Error(updateError.message || "Error al guardar el contenido");
+          setCvId(data.id);
+          navigate(`/dashboard/cvs/${data.id}/edit`, { replace: true });
+        }
       }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setSaveError(err.message || "Error inesperado al guardar. Intenta de nuevo.");
+      setTimeout(() => setSaveError(""), 5000);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
   };
 
   const handleParsed = (parsed) => {
@@ -398,6 +411,13 @@ export default function CVEditorPage() {
                 >
                   <Plus size={15} /> Agregar skill
                 </button>
+              </div>
+            )}
+
+            {/* Error de guardado */}
+            {saveError && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 10, background: "rgba(255,77,109,0.08)", border: "1px solid rgba(255,77,109,0.2)", fontSize: "0.82rem", color: "var(--danger)" }}>
+                ⚠️ {saveError}
               </div>
             )}
 
