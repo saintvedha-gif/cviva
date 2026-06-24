@@ -1,12 +1,13 @@
 // src/components/dashboard/DashboardHome.jsx
 import { useState, useEffect } from "react";
-import { FileText, Eye, TrendingUp, Plus, ArrowRight, Clock, Zap, Download, Trash2, AlertCircle } from "lucide-react";
+import { FileText, Eye, TrendingUp, Plus, ArrowRight, Clock, Zap, Download, Trash2, AlertCircle, Copy, Check } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useSubscription } from "../../hooks/useSubscription";
 import { useCVs } from "../../hooks/useCVs";
 import { createCV } from "../../lib/supabase";
 import ExportModal from "./ExportModal";
+import { useCopyLink } from "../../hooks/useCopyLink";
 import OnboardingModal, { shouldShowOnboarding } from "./OnboardingModal";
 
 const StatCard = ({ icon: Icon, label, value, color, sub }) => (
@@ -27,6 +28,7 @@ const StatCard = ({ icon: Icon, label, value, color, sub }) => (
 );
 
 const CVCard = ({ cv, onExport, onDelete }) => {
+  const { copied: linkCopied, copy: copyLink } = useCopyLink();
   const updatedAt = new Date(cv.updated_at);
   const diffMs = Date.now() - updatedAt.getTime();
   const diffH = Math.floor(diffMs / 3600000);
@@ -72,6 +74,14 @@ const CVCard = ({ cv, onExport, onDelete }) => {
             <Eye size={12} /> Ver
           </Link>
         )}
+        {cv.published && cv.slug && (
+          <button
+            onClick={() => copyLink(`${window.location.origin}/cv/${cv.slug}`)}
+            style={{ flex: 1, minWidth: 70, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px", borderRadius: 8, border: `1px solid ${linkCopied ? "rgba(0,229,160,0.4)" : "var(--border)"}`, background: linkCopied ? "rgba(0,229,160,0.08)" : "transparent", color: linkCopied ? "#00E5A0" : "var(--muted)", fontSize: "0.75rem", fontFamily: "Syne,sans-serif", fontWeight: 600, cursor: "pointer", transition: "all 0.18s" }}
+          >
+            {linkCopied ? <><Check size={12} /> ¡Copiado!</> : <><Copy size={12} /> Link</>}
+          </button>
+        )}
         <button
           onClick={() => onExport(cv)}
           style={{ flex: 1, minWidth: 70, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontSize: "0.75rem", fontFamily: "Syne,sans-serif", fontWeight: 600, cursor: "pointer", transition: "border-color 0.18s, color 0.18s" }}
@@ -108,7 +118,16 @@ const DashboardHome = () => {
   const { plan, isFree } = useSubscription();
   const { cvs, loading, remove } = useCVs();
   const [exportTarget, setExportTarget] = useState(null);
+
   const [creating, setCreating] = useState(false);
+
+  const handleCopyLink = (slug, id) => {
+    const url = `${window.location.origin}/cv/${slug}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const name = user?.user_metadata?.full_name?.split(" ")[0] || "ahí";

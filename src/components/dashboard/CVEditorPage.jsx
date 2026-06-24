@@ -112,19 +112,17 @@ export default function CVEditorPage() {
       title: cvData.name ? `CV — ${cvData.name}` : cvTitle,
       published: shouldPublish,
     };
-
     try {
       if (cvId) {
         const { error } = await updateCV(cvId, payload);
-        if (error) throw new Error(error.message || "Error al guardar");
+        if (error) throw new Error(error.message);
         if (publishFlag !== undefined) setPublished(publishFlag);
       } else {
-        // Pasar el nombre real de la persona para que el slug quede limpio
-        const { data, error } = await createCV(user.id, payload.title, cvData.name);
-        if (error) throw new Error(error.message || "Error al crear el CV");
+        const { data, error: createError } = await createCV(user.id, payload.title);
+        if (createError) throw new Error(createError.message);
         if (data) {
           const { error: updateError } = await updateCV(data.id, { cv_data: cvData, published: shouldPublish });
-          if (updateError) throw new Error(updateError.message || "Error al guardar el contenido");
+          if (updateError) throw new Error(updateError.message);
           setCvId(data.id);
           navigate(`/dashboard/cvs/${data.id}/edit`, { replace: true });
         }
@@ -132,8 +130,8 @@ export default function CVEditorPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
-      setSaveError(err.message || "Error inesperado al guardar. Intenta de nuevo.");
-      setTimeout(() => setSaveError(""), 5000);
+      setSaveError(err.message || "Error al guardar. Intenta de nuevo.");
+      setTimeout(() => setSaveError(""), 4000);
     } finally {
       setSaving(false);
     }
@@ -414,7 +412,7 @@ export default function CVEditorPage() {
               </div>
             )}
 
-            {/* Error de guardado */}
+            {/* Error al guardar */}
             {saveError && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 10, background: "rgba(255,77,109,0.08)", border: "1px solid rgba(255,77,109,0.2)", fontSize: "0.82rem", color: "var(--danger)" }}>
                 ⚠️ {saveError}

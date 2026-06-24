@@ -1,12 +1,14 @@
 // src/components/dashboard/CVListPage.jsx
 import { useState } from "react";
-import { Plus, Eye, Clock, Download, Trash2, FileText } from "lucide-react";
+import { Plus, Eye, Clock, Download, Trash2, FileText, Copy, Check } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ExportModal from "./ExportModal";
 import { useCVs } from "../../hooks/useCVs";
 import { useAuth } from "../../hooks/useAuth";
 import { useSubscription } from "../../hooks/useSubscription";
 import { createCV } from "../../lib/supabase";
+import { useCopyLink } from "../../hooks/useCopyLink";
+
 
 export default function CVListPage() {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ export default function CVListPage() {
   const { cvs, loading, error, remove } = useCVs();
   const [exportTarget, setExportTarget] = useState(null);
   const [creating, setCreating] = useState(false);
+  const { copied: copiedId, copy: copyLink } = useCopyLink();
 
   const FREE_LIMIT = 1;
   const canCreate = !isFree || cvs.length < FREE_LIMIT;
@@ -166,6 +169,14 @@ export default function CVListPage() {
                   >
                     <Eye size={12} /> Ver
                   </Link>
+                )}
+                {cv.published && cv.slug && (
+                  <button
+                    onClick={() => copyLink(`${window.location.origin}/cv/${cv.slug}`)}
+                    style={{ flex: 1, minWidth: 70, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px", borderRadius: 8, border: `1px solid ${copiedId ? "rgba(0,229,160,0.4)" : "var(--border)"}`, background: copiedId ? "rgba(0,229,160,0.08)" : "transparent", color: copiedId ? "#00E5A0" : "var(--muted)", fontSize: "0.75rem", fontFamily: "Syne,sans-serif", fontWeight: 600, cursor: "pointer", transition: "all 0.18s" }}
+                  >
+                    {copiedId ? <><Check size={12} /> ¡Copiado!</> : <><Copy size={12} /> Link</>}
+                  </button>
                 )}
 
                 <button
