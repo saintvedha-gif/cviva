@@ -1,8 +1,8 @@
 // src/components/dashboard/SettingsPage.jsx
 import { useState, useRef } from "react";
-import { Save, User, Lock, Camera, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Save, User, Lock, Camera, AlertCircle, CheckCircle2, Trash2, AlertTriangle } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
-import { uploadAvatar, updateProfile } from "../../lib/supabase";
+import { uploadAvatar, updateProfile, requestAccountDeletion } from "../../lib/supabase";
 import { supabase } from "../../lib/supabase";
 
 const Field = ({ label, value, onChange, type = "text", placeholder, disabled = false }) => (
@@ -50,6 +50,11 @@ export default function SettingsPage() {
 
   const [sendingReset, setSendingReset] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [sendingDeletion, setSendingDeletion] = useState(false);
+  const [deletionSent, setDeletionSent] = useState(false);
+  const [deletionError, setDeletionError] = useState("");
 
   const fileRef = useRef();
 
@@ -102,6 +107,19 @@ export default function SettingsPage() {
     setSendingReset(false);
     setResetSent(true);
     setTimeout(() => setResetSent(false), 4000);
+  };
+
+  const handleRequestDeletion = async () => {
+    setSendingDeletion(true);
+    setDeletionError("");
+    const { error } = await requestAccountDeletion(email);
+    setSendingDeletion(false);
+    if (error) {
+      setDeletionError(error.message || "No se pudo enviar el correo. Intenta de nuevo.");
+      return;
+    }
+    setDeletionSent(true);
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -235,6 +253,91 @@ export default function SettingsPage() {
         >
           {sendingReset ? "Enviando..." : resetSent ? "Enlace enviado ✓" : "Enviar enlace"}
         </button>
+      </div>
+
+      {/* Zona de peligro: eliminar cuenta */}
+      <div style={{ background: "var(--surface)", border: "1px solid rgba(255,77,109,0.3)", borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <AlertTriangle size={16} color="var(--danger)" />
+          <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: "0.9rem", color: "var(--text)" }}>Zona de peligro</span>
+        </div>
+
+        <div style={{ fontSize: "0.85rem", color: "var(--muted)", lineHeight: 1.6 }}>
+          Eliminar tu cuenta borra permanentemente tu perfil, tus CVs y tu historial
+          de pagos. Por seguridad, te enviaremos un correo de verificación a{" "}
+          <strong style={{ color: "var(--text)" }}>{email}</strong> antes de borrar
+          nada — no se elimina nada solo con el clic de aquí abajo.
+        </div>
+
+        {deletionSent && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(0,229,160,0.08)", border: "1px solid rgba(0,229,160,0.2)" }}>
+            <CheckCircle2 size={14} color="#00E5A0" />
+            <span style={{ fontSize: "0.78rem", color: "#00E5A0" }}>
+              Correo de verificación enviado. Revísalo para confirmar la eliminación.
+            </span>
+          </div>
+        )}
+
+        {deletionError && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(255,77,109,0.08)", border: "1px solid rgba(255,77,109,0.2)" }}>
+            <AlertCircle size={14} color="var(--danger)" />
+            <span style={{ fontSize: "0.78rem", color: "var(--danger)" }}>{deletionError}</span>
+          </div>
+        )}
+
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={sendingDeletion || deletionSent}
+            style={{
+              alignSelf: "flex-start",
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 20px", borderRadius: 10,
+              cursor: deletionSent ? "not-allowed" : "pointer",
+              background: "transparent",
+              color: "var(--danger)",
+              border: "1.5px solid rgba(255,77,109,0.4)",
+              fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem",
+              opacity: deletionSent ? 0.6 : 1,
+            }}
+          >
+            <Trash2 size={14} /> Eliminar mi cuenta
+          </button>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={{ fontSize: "0.82rem", color: "var(--text)", fontFamily: "Syne,sans-serif", fontWeight: 600 }}>
+              ¿Seguro que quieres enviar el correo de verificación para eliminar tu cuenta?
+            </span>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={handleRequestDeletion}
+                disabled={sendingDeletion}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "10px 20px", borderRadius: 10, border: "none",
+                  cursor: sendingDeletion ? "not-allowed" : "pointer",
+                  background: "var(--danger)", color: "#fff",
+                  fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.85rem",
+                  opacity: sendingDeletion ? 0.7 : 1,
+                }}
+              >
+                {sendingDeletion ? "Enviando..." : "Sí, enviar correo"}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={sendingDeletion}
+                style={{
+                  padding: "10px 20px", borderRadius: 10,
+                  border: "1.5px solid var(--border)", background: "transparent",
+                  color: "var(--muted)", fontFamily: "Syne,sans-serif", fontWeight: 600, fontSize: "0.85rem",
+                  cursor: sendingDeletion ? "not-allowed" : "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

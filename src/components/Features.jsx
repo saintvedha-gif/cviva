@@ -2,9 +2,9 @@ import { Filter, Download, Sparkles, Globe, BarChart2, Lock, Layers } from "luci
 
 const features = [
   { icon: <Filter size={22} />, title: "Filtros inteligentes", desc: "Los reclutadores filtran tus habilidades en tiempo real. Tu CV se adapta a cada búsqueda sin recargar la página.", color: "#00E5FF" },
-  { icon: <Download size={22} />, title: "Exportación perfecta", desc: "Descarga en PDF o Word con un clic. Formatos ATS-friendly para pasar los filtros automáticos.", color: "#FFD166" },
+  { icon: <Download size={22} />, title: "Exportación rápida", desc: "Descarga tu CV en PDF compatible con ATS, PDF visual, o Word totalmente editable. Tú eliges el formato.", color: "#FFD166" },
   { icon: <Sparkles size={22} />, title: "Editor en tiempo real", desc: "Edita cualquier sección y ve los cambios al instante. Sin plantillas rígidas, sin fricción.", color: "#FF6B6B" },
-  { icon: <Globe size={22} />, title: "URL personalizada", desc: "Comparte tu CV con un link único: cviva.app/tu-nombre. Perfecto para emails y LinkedIn.", color: "#C77DFF" },
+  { icon: <Globe size={22} />, title: "Link público", desc: "Comparte tu CV con un link único y fácil de recordar. Perfecto para emails y LinkedIn.", color: "#C77DFF" },
   { icon: <BarChart2 size={22} />, title: "Analíticas de visitas", desc: "Sabe cuándo y cuántas veces revisaron tu CV. Información real para optimizar tu búsqueda.", color: "#00E5A0" },
   { icon: <Lock size={22} />, title: "Privacidad total", desc: "Controla quién puede ver tu CV. Activa y desactiva el acceso público en segundos.", color: "#FF9F43" },
 ];

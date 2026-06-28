@@ -3,9 +3,9 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   { q: "¿Necesito saber programar para usar CViva?", a: "No. CViva está diseñado para cualquier profesional. Solo sube tu CV o rellena el formulario guiado y en minutos tienes tu CV interactivo listo." },
-  { q: "¿Los CVs pasan filtros ATS?", a: "Sí. Los PDFs y documentos Word generados siguen las mejores prácticas ATS: sin columnas complejas, fuentes estándar y estructura semántica correcta." },
-  { q: "¿Puedo cancelar en cualquier momento?", a: "Absolutamente. Sin contratos, sin penalizaciones. Cancela desde tu dashboard con un clic y conservas acceso hasta el fin del período pagado." },
-  { q: "¿Mis datos están seguros?", a: "Tu información está cifrada en reposo y en tránsito. Nunca compartimos tus datos con terceros. Tienes control total para eliminar tu cuenta y datos en cualquier momento." },
+  { q: "¿Los CVs pasan filtros ATS?", a: "Sí. Al exportar, elige la opción \"PDF (compatible con ATS)\": genera texto real en una sola columna, sin colores ni gráficos. El Word también es texto real. La opción \"PDF (diseño visual)\" es una imagen pensada para compartir, no para postular a empleos." },
+  { q: "¿Puedo cancelar en cualquier momento?", a: "Sí. Por ahora la cancelación se gestiona escribiéndonos a hola@cviva.co y la procesamos manualmente sin penalizaciones; conservas el acceso hasta el fin del período pagado." },
+  { q: "¿Mis datos están seguros?", a: "Tu información se almacena de forma segura y nunca compartimos tus datos con terceros. Si quieres eliminar tu cuenta y tus datos, escríbenos a hola@cviva.co y lo gestionamos por ti." },
 ];
 
 const FAQ = () => {

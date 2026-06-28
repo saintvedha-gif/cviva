@@ -152,3 +152,45 @@ export const uploadCVPhoto = async (userId, cvId, file) => {
   const { data } = supabase.storage.from("cv-photos").getPublicUrl(path);
   return { url: data.publicUrl, error: null };
 };
+
+// ── Eliminación de cuenta ──────────────────────────────────────────────────────
+// Flujo de 2 pasos por seguridad (una acción irreversible no debe ocurrir con
+// un solo clic):
+// 1) requestAccountDeletion(email) envía un correo con un link de verificación
+//    (reutiliza el sistema de "magic link" de Supabase, sin agregar un
+//    servicio de email nuevo). El link lleva a /auth/confirm-deletion.
+// 2) Esa página, al confirmar, llama a confirmAccountDeletion(), que ejecuta
+//    la Edge Function "delete-account" en el servidor (la única forma segura
+//    de borrar de auth.users sin exponer la service_role key en el navegador).
+
+export async function requestAccountDeletion(email) {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/confirm-deletion`,
+  });
+  return { data, error };
+}
+
+export async function confirmAccountDeletion() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    return { error: { message: "Sesión inválida o expirada. Solicita el correo de eliminación de nuevo." } };
+  }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { error: { message: body.error || "No se pudo eliminar la cuenta" } };
+    }
+    return { data: body, error: null };
+  } catch (err) {
+    return { error: { message: err.message || "No se pudo conectar con el servidor" } };
+  }
+}

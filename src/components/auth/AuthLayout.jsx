@@ -1,4 +1,4 @@
-import { Zap, Star } from "lucide-react";
+import { Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const AuthLayout = ({ children, title, subtitle }) => (
@@ -24,26 +24,24 @@ const AuthLayout = ({ children, title, subtitle }) => (
         </span>
       </Link>
 
-      {/* Testimonial desktop — orden: persona → estrellas → frase → stats */}
+      {/* Beneficios desktop — reemplaza el testimonio anterior, que citaba a una
+          persona y cifras de uso ficticias. Esto se actualizará con testimonios
+          reales en cuanto existan. */}
       <div style={{ position: "relative" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-          <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #00E5FF, #0062FF)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Syne, sans-serif", fontWeight: 800, color: "#000", fontSize: "0.9rem", flexShrink: 0 }}>JM</div>
-          <div>
-            <div style={{ fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "0.9rem", color: "var(--text)" }}>Juliana Morales</div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)" }}>Product Designer · Medellín</div>
-          </div>
+        <div style={{ fontSize: "1.3rem", fontFamily: "Syne, sans-serif", fontWeight: 700, color: "var(--text)", lineHeight: 1.4, marginBottom: 24 }}>
+          Tu CV interactivo, listo en minutos.
         </div>
-        <div style={{ display: "flex", gap: 2, marginBottom: 16 }}>
-          {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="var(--gold)" color="var(--gold)" />)}
-        </div>
-        <div style={{ fontSize: "1.4rem", fontFamily: "Syne, sans-serif", fontWeight: 700, color: "var(--text)", lineHeight: 1.45, marginBottom: 28 }}>
-          "Conseguí 3 entrevistas en una semana. Mi CV nunca había tenido tanto impacto."
-        </div>
-        <div style={{ display: "flex", gap: 24, marginTop: 36, paddingTop: 28, borderTop: "1px solid var(--border)" }}>
-          {[["2,400+", "Usuarios"], ["3×", "Más entrevistas"], ["< 5min", "Para publicar"]].map(([val, label]) => (
-            <div key={label}>
-              <div style={{ fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: "1.3rem", color: "var(--accent)", letterSpacing: "-0.04em" }}>{val}</div>
-              <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginTop: 2 }}>{label}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {[
+            "Sube tu CV en PDF o Word y la IA extrae tu información",
+            "Edita y personaliza cada sección en tiempo real",
+            "Comparte un link público o descarga en PDF / Word",
+          ].map((text, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--accent-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2, color: "var(--accent)", fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: "0.7rem" }}>
+                {i + 1}
+              </div>
+              <span style={{ fontSize: "0.88rem", color: "var(--muted)", lineHeight: 1.5 }}>{text}</span>
             </div>
           ))}
         </div>
@@ -80,17 +78,13 @@ const AuthLayout = ({ children, title, subtitle }) => (
         {children}
       </div>
 
-      {/* Testimonial móvil — orden: persona → estrellas → frase */}
+      {/* Beneficios móvil — versión compacta del panel desktop, mismo contenido honesto */}
       <div className="auth-mobile-testimonial" style={{ width: "100%", maxWidth: 420, marginTop: 32, padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #00E5FF, #0062FF)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Syne, sans-serif", fontWeight: 800, color: "#000", fontSize: "0.65rem", flexShrink: 0 }}>JM</div>
-          <span style={{ fontSize: "0.75rem", color: "var(--text)", fontFamily: "Syne, sans-serif", fontWeight: 600 }}>Juliana M. · Product Designer</span>
-        </div>
-        <div style={{ display: "flex", gap: 2, marginBottom: 8 }}>
-          {[...Array(5)].map((_, i) => <Star key={i} size={11} fill="var(--gold)" color="var(--gold)" />)}
+        <div style={{ fontSize: "0.85rem", fontFamily: "Syne, sans-serif", fontWeight: 700, color: "var(--text)", marginBottom: 10 }}>
+          Tu CV interactivo, listo en minutos
         </div>
         <p style={{ fontSize: "0.8rem", color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
-          "Conseguí 3 entrevistas en una semana con CViva."
+          Sube tu CV, edítalo en tiempo real y compártelo con un link o descárgalo en PDF / Word.
         </p>
       </div>
     </div>

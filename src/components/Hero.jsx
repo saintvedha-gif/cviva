@@ -1,4 +1,4 @@
-import { ArrowRight, Play, Star, Sparkles, Filter, Download, FileText, Globe } from "lucide-react";
+import { ArrowRight, Play, Sparkles, Filter, Download, FileText, Globe } from "lucide-react";
 
 const CVMockup = () => (
   <div style={{ width: "100%", maxWidth: 400, background: "var(--surface)", borderRadius: 20, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "0 40px 80px rgba(0,0,0,0.4), var(--accent-glow)" }}>
@@ -69,18 +69,13 @@ const Hero = () => (
           <a href="#pricing" className="btn-primary">Crear mi CV <ArrowRight size={16} /></a>
           <a href="#demo" className="btn-ghost"><Play size={15} fill="currentColor" /> Ver demo</a>
         </div>
-        <div className="fade-up d5" style={{ marginTop: 48, display: "flex", alignItems: "center", gap: 20 }}>
-          <div style={{ display: "flex" }}>
-            {["#0E7DFF", "#FF6B6B", "#00E5A0", "#FFD166"].map((c, i) => (
-              <div key={i} style={{ width: 34, height: 34, borderRadius: "50%", background: c, border: "2px solid var(--bg)", marginLeft: i === 0 ? 0 : -10 }} />
-            ))}
+        <div className="fade-up d5" style={{ marginTop: 48, display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--accent-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Sparkles size={16} color="var(--accent)" />
           </div>
-          <div>
-            <div style={{ display: "flex", gap: 2, marginBottom: 3 }}>
-              {[...Array(5)].map((_, i) => <Star key={i} size={13} fill="var(--gold)" color="var(--gold)" />)}
-            </div>
-            <span style={{ fontSize: "0.82rem", color: "var(--muted)" }}>+2,400 profesionales confían en CViva</span>
-          </div>
+          <span style={{ fontSize: "0.85rem", color: "var(--muted)", lineHeight: 1.5 }}>
+            Sin tarjeta de crédito · Listo en menos de 5 minutos
+          </span>
         </div>
       </div>
       <div className="float-anim" style={{ position: "relative", display: "flex", justifyContent: "center" }}>

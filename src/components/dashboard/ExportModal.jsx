@@ -1,16 +1,23 @@
 // src/components/dashboard/ExportModal.jsx
 import { useState } from "react";
 import { X, FileText, Download, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { exportToPDF } from "../../lib/exportPDF";
+import { exportToPDF, exportToATSPDF } from "../../lib/exportPDF";
 import { exportToWord } from "../../lib/exportWord";
 import { incrementCVDownloads } from "../../lib/supabase";
 
 const FORMATS = [
   {
-    id: "pdf",
-    label: "PDF",
-    desc: "Diseño exacto, listo para enviar",
+    id: "pdf-ats",
+    label: "PDF (compatible con ATS)",
+    desc: "Texto real, una columna. Recomendado para postularte a empleos.",
     icon: "📄",
+    color: "#00E5A0",
+  },
+  {
+    id: "pdf-visual",
+    label: "PDF (diseño visual)",
+    desc: "Captura el diseño exacto de la vista previa. No es legible por sistemas ATS.",
+    icon: "🎨",
     color: "#FF6B6B",
   },
   {
@@ -23,7 +30,7 @@ const FORMATS = [
 ];
 
 const ExportModal = ({ isOpen, onClose, cvData, cvId, previewElementId = "cv-preview" }) => {
-  const [selected, setSelected] = useState("pdf");
+  const [selected, setSelected] = useState("pdf-ats");
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -35,8 +42,19 @@ const ExportModal = ({ isOpen, onClose, cvData, cvId, previewElementId = "cv-pre
     setStatus("loading");
     setErrorMsg("");
     try {
-      if (selected === "pdf") {
-        await exportToPDF(previewElementId, `${fileName}.pdf`);
+      if (selected === "pdf-visual") {
+        // El PDF visual necesita el elemento de la vista previa en el DOM.
+        // Eso solo existe dentro del editor; si no está (por ejemplo, al
+        // exportar desde la lista de CVs o el dashboard), usamos el PDF
+        // de texto real como respaldo en vez de fallar.
+        const elementExists = !!document.getElementById(previewElementId);
+        if (elementExists) {
+          await exportToPDF(previewElementId, `${fileName}.pdf`);
+        } else {
+          await exportToATSPDF(cvData, `${fileName}.pdf`);
+        }
+      } else if (selected === "pdf-ats") {
+        await exportToATSPDF(cvData, `${fileName}.pdf`);
       } else {
         await exportToWord(cvData, `${fileName}.docx`);
       }
@@ -140,17 +158,30 @@ const ExportModal = ({ isOpen, onClose, cvData, cvId, previewElementId = "cv-pre
           })}
         </div>
 
-        {/* Info box for PDF */}
-        {selected === "pdf" && (
+        {/* Info box para PDF */}
+        {selected === "pdf-ats" && (
           <div style={{
             display: "flex", alignItems: "flex-start", gap: 10,
             padding: "10px 14px", borderRadius: 10,
-            background: "rgba(0,229,255,0.06)", border: "1px solid rgba(0,229,255,0.15)",
+            background: "rgba(0,229,160,0.06)", border: "1px solid rgba(0,229,160,0.15)",
             marginBottom: 20,
           }}>
-            <FileText size={14} color="var(--accent)" style={{ marginTop: 2, flexShrink: 0 }} />
+            <FileText size={14} color="#00E5A0" style={{ marginTop: 2, flexShrink: 0 }} />
             <p style={{ fontSize: "0.75rem", color: "var(--muted)", margin: 0, lineHeight: 1.6 }}>
-              El PDF captura el diseño exacto de la vista previa. Asegúrate de que el CV esté completamente visible antes de exportar.
+              Este PDF tiene texto real (no es una imagen), en una sola columna, sin colores ni gráficos. Es el formato recomendado para postularte a empleos.
+            </p>
+          </div>
+        )}
+        {selected === "pdf-visual" && (
+          <div style={{
+            display: "flex", alignItems: "flex-start", gap: 10,
+            padding: "10px 14px", borderRadius: 10,
+            background: "rgba(255,107,107,0.06)", border: "1px solid rgba(255,107,107,0.15)",
+            marginBottom: 20,
+          }}>
+            <FileText size={14} color="#FF6B6B" style={{ marginTop: 2, flexShrink: 0 }} />
+            <p style={{ fontSize: "0.75rem", color: "var(--muted)", margin: 0, lineHeight: 1.6 }}>
+              El PDF captura el diseño exacto de la vista previa, pero queda como imagen: no es legible por sistemas ATS. Úsalo solo para enviar por email o redes, no para postularte a empleos.
             </p>
           </div>
         )}
@@ -186,7 +217,11 @@ const ExportModal = ({ isOpen, onClose, cvData, cvId, previewElementId = "cv-pre
           {status === "loading" && <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />}
           {status === "success" && <CheckCircle2 size={16} />}
           {status === "idle" || status === "error" ? <Download size={16} /> : null}
-          {status === "loading" ? "Exportando..." : status === "success" ? "¡Descargado!" : `Descargar ${selected.toUpperCase()}`}
+          {status === "loading"
+            ? "Exportando..."
+            : status === "success"
+              ? "¡Descargado!"
+              : `Descargar ${selected === "word" ? "WORD" : "PDF"}`}
         </button>
 
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

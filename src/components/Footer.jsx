@@ -1,9 +1,10 @@
 import { Zap, Twitter, Linkedin, Github, Mail } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => (
   <footer style={{ borderTop: "1px solid var(--border)", padding: "48px 24px 32px", background: "var(--surface)" }}>
     <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-      <div className="grid-footer" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 40, marginBottom: 48 }}>
+      <div className="grid-footer" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 40, marginBottom: 48 }}>
           <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -27,19 +28,18 @@ const Footer = () => (
           </div>
         </div>
         {[
-          { title: "Producto", links: ["Features", "Pricing", "Demo", "Changelog"] },
-          { title: "Empresa", links: ["About", "Blog", "Careers", "Press"] },
-          { title: "Legal", links: ["Privacy", "Terms", "Cookies", "GDPR"] },
+          { title: "Producto", links: [{ label: "Features", to: "/#features" }, { label: "Pricing", to: "/pricing" }, { label: "Demo", to: "/#demo" }] },
+          { title: "Legal", links: [{ label: "Privacidad", to: "/privacy" }, { label: "Términos", to: "/terms" }, { label: "Cookies", to: "/cookies" }] },
         ].map((col, i) => (
           <div key={i}>
             <div style={{ fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "0.8rem", color: "var(--text)", marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.07em" }}>{col.title}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {col.links.map(l => (
-                <a key={l} href="#" style={{ color: "var(--muted)", fontSize: "0.85rem", textDecoration: "none", transition: "color 0.18s" }}
+                <Link key={l.label} to={l.to} style={{ color: "var(--muted)", fontSize: "0.85rem", textDecoration: "none", transition: "color 0.18s" }}
                   onMouseEnter={e => e.target.style.color = "var(--text)"}
                   onMouseLeave={e => e.target.style.color = "var(--muted)"}>
-                  {l}
-                </a>
+                  {l.label}
+                </Link>
               ))}
             </div>
           </div>

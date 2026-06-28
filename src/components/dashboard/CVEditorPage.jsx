@@ -119,7 +119,14 @@ export default function CVEditorPage() {
         if (publishFlag !== undefined) setPublished(publishFlag);
       } else {
         const { data, error: createError } = await createCV(user.id, payload.title);
-        if (createError) throw new Error(createError.message);
+        if (createError) {
+          const isLimitError = createError.message?.includes("free_plan_limit_reached");
+          throw new Error(
+            isLimitError
+              ? "Alcanzaste el límite del plan Free (1 CV). Actualiza a Pro para crear más."
+              : createError.message
+          );
+        }
         if (data) {
           const { error: updateError } = await updateCV(data.id, { cv_data: cvData, published: shouldPublish });
           if (updateError) throw new Error(updateError.message);

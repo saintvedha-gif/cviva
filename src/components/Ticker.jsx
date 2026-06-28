@@ -1,5 +1,5 @@
 const Ticker = () => {
-  const items = ["ATS-Friendly", "PDF Export", "Word Export", "Filterable Skills", "Dark Mode", "Mobile First", "Real-time Editor", "Custom Domains", "Analytics", "AI Suggestions"];
+  const items = ["ATS-Friendly", "IA para extraer tu CV", "PDF Export", "Word Export", "Filterable Skills", "Dark Mode", "Mobile First", "Real-time Editor", "Link público", "Analytics"];
   const doubled = [...items, ...items];
   return (
     <div style={{ overflow: "hidden", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "12px 0", background: "var(--surface)" }}>

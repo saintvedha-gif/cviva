@@ -1,12 +1,12 @@
-import { TrendingUp, Users, Award, Zap } from "lucide-react";
+import { Sparkles, FileText, Globe, Zap } from "lucide-react";
 
 const Stats = () => (
   <section style={{ padding: "80px 24px" }}>
     <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 32, textAlign: "center" }}>
       {[
-        { value: "3×", label: "más entrevistas", icon: <TrendingUp size={20} />, color: "#00E5FF" },
-        { value: "2,400+", label: "profesionales activos", icon: <Users size={20} />, color: "#FFD166" },
-        { value: "98%", label: "tasa de satisfacción", icon: <Award size={20} />, color: "#C77DFF" },
+        { value: "IA", label: "extrae tu CV automáticamente", icon: <Sparkles size={20} />, color: "#00E5FF" },
+        { value: "PDF + Word", label: "exportación incluida", icon: <FileText size={20} />, color: "#FFD166" },
+        { value: "1 link", label: "para compartir tu CV", icon: <Globe size={20} />, color: "#C77DFF" },
         { value: "< 5min", label: "para publicar tu CV", icon: <Zap size={20} />, color: "#00E5A0" },
       ].map((s, i) => (
         <div key={i}>

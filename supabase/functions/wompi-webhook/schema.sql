@@ -54,12 +54,16 @@ create trigger profiles_updated_at
   for each row execute procedure public.update_updated_at();
 
 -- ── TABLA: cvs ─────────────────────────────────────────────
+-- FIX CRÍTICO: la columna se llama "cv_data" (no "data") porque TODO el
+-- frontend (CVEditorPage.jsx, InteractiveCVPage.jsx, supabase.js, CVListPage.jsx,
+-- DashboardHome.jsx) lee y escribe "cv_data". Con el nombre "data" original,
+-- guardar y cargar un CV fallaba en silencio / con error de columna inexistente.
 create table if not exists public.cvs (
   id          uuid primary key default uuid_generate_v4(),
   user_id     uuid not null references public.profiles(id) on delete cascade,
   title       text not null default 'Mi CV',
   slug        text unique,
-  data        jsonb,                  -- el objeto JSON con toda la info del CV
+  cv_data     jsonb,                  -- el objeto JSON con toda la info del CV
   template    text default 'default',
   published   boolean not null default false,
   views       integer not null default 0,
@@ -67,6 +71,21 @@ create table if not exists public.cvs (
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+
+-- Si la tabla ya existía con la columna vieja "data", renómbrala así
+-- (no rompe nada si la columna ya se llama cv_data: el IF EXISTS evita el error)
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'cvs' and column_name = 'data'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'cvs' and column_name = 'cv_data'
+  ) then
+    alter table public.cvs rename column data to cv_data;
+  end if;
+end $$;
 
 drop trigger if exists cvs_updated_at on public.cvs;
 create trigger cvs_updated_at
@@ -125,7 +144,16 @@ returns void language sql security definer as $$
   update public.cvs set views = views + 1 where id = cv_id and published = true;
 $$;
 
+-- FIX: faltaba "and published = true" — antes se podían inflar las
+-- descargas de un CV en borrador (no publicado) sin ninguna restricción.
 create or replace function public.increment_cv_downloads(cv_id uuid)
 returns void language sql security definer as $$
-  update public.cvs set downloads = downloads + 1 where id = cv_id;
+  update public.cvs set downloads = downloads + 1 where id = cv_id and published = true;
 $$;
+
+-- ── Índice único para idempotencia de pagos ─────────────────
+-- Evita registrar el mismo pago dos veces si Wompi reintenta el webhook
+-- (no cambia la lógica del webhook todavía, solo prepara la base de datos).
+create unique index if not exists payments_gateway_tx_id_unique
+  on public.payments (gateway_tx_id)
+  where gateway_tx_id is not null;

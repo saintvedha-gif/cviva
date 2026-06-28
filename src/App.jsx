@@ -19,11 +19,16 @@ import LoginPage from "./components/auth/LoginPage";
 import RegisterPage from "./components/auth/RegisterPage";
 import ForgotPasswordPage from "./components/auth/ForgotPasswordPage";
 import UpdatePasswordPage from "./components/auth/UpdatePasswordPage";
+import ConfirmDeletionPage from "./components/auth/ConfirmDeletionPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ConfirmPage from "./components/auth/ConfirmPage";
 
 import PricingPage from "./components/PricingPage";
 import CheckoutSuccess from "./components/checkout/CheckoutSuccess";
+
+import TermsPage from "./components/legal/TermsPage";
+import PrivacyPage from "./components/legal/PrivacyPage";
+import CookiesPage from "./components/legal/CookiesPage";
 
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardHome from "./components/dashboard/DashboardHome";
@@ -90,11 +95,17 @@ export default function App() {
           <Route path="/auth/register"        element={<RegisterPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
+          <Route path="/auth/confirm-deletion" element={<ConfirmDeletionPage />} />
           <Route path="/auth/confirm"         element={<ConfirmPage />} />
 
           {/* Pagos */}
           <Route path="/pricing"          element={<PricingPage />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
+
+          {/* Legal */}
+          <Route path="/terms"   element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/cookies" element={<CookiesPage />} />
 
           {/* CV público — accesible sin login */}
           <Route path="/cv/:slug" element={<InteractiveCVPage />} />

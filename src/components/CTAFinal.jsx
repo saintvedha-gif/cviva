@@ -12,7 +12,7 @@ const CTAFinal = () => (
         Tu próxima oportunidad<br />empieza con un mejor CV.
       </h2>
       <p style={{ color: "var(--muted)", fontSize: "1.05rem", maxWidth: 460, margin: "0 auto 40px" }}>
-        Únete a miles de profesionales que ya destacan con CViva. Gratis para empezar, poderoso para escalar.
+        Crea tu CV interactivo hoy mismo. Gratis para empezar, poderoso para escalar.
       </p>
       <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
         <a href="#pricing" className="btn-primary" style={{ fontSize: "1rem", padding: "16px 32px" }}>
