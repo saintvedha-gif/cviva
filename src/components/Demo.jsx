@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Filter, Download, FileText, ArrowRight, Play } from "lucide-react";
 
 const demoProfiles = [
-  { name: "Carlos Méndez", role: "Full Stack Developer", location: "Medellín, CO", skills: ["React", "Node.js", "PostgreSQL", "AWS"], experience: "6 años", accent: "#00E5FF" },
-  { name: "Laura Jiménez", role: "Product Manager", location: "Bogotá, CO", skills: ["Roadmapping", "Scrum", "Figma", "SQL"], experience: "4 años", accent: "#FFD166" },
-  { name: "Andrés Torres", role: "Data Scientist", location: "Cali, CO", skills: ["Python", "ML", "Power BI", "dbt"], experience: "5 años", accent: "#C77DFF" },
+  { name: "Laura Jiménez", role: "Asesora comercial", location: "Bogotá, CO", skills: ["Atención al cliente", "Negociación", "CRM", "Ventas B2B"], experience: "4 años", accent: "#FFD166" },
+  { name: "Andrés Torres", role: "Auxiliar de enfermería", location: "Cali, CO", skills: ["Cuidado de pacientes", "Primeros auxilios", "Trabajo en equipo", "Signos vitales"], experience: "5 años", accent: "#C77DFF" },
+  { name: "Carlos Méndez", role: "Desarrollador Full Stack", location: "Medellín, CO", skills: ["React", "Node.js", "PostgreSQL", "AWS"], experience: "6 años", accent: "#00E5FF" },
 ];
 
 const DemoCard = ({ profile }) => {

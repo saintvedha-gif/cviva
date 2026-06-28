@@ -1,17 +1,17 @@
 // src/components/dashboard/CVEditorPage.jsx
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus, Trash2, Save, Eye, Upload, User, Briefcase, GraduationCap, Wrench, FileText, Globe, Camera } from "lucide-react";
+import { Plus, Trash2, Save, Eye, Upload, User, Briefcase, GraduationCap, Sparkles, FileText, Globe, Camera } from "lucide-react";
 import ExportModal from "./ExportModal";
 import CVUploader from "./CVUploader";
 import { useAuth } from "../../hooks/useAuth";
 import { getCVById, updateCV, createCV, uploadCVPhoto } from "../../lib/supabase";
 
 const TABS = [
-  { id: "info",       label: "Info",        icon: User },
-  { id: "experience", label: "Experiencia", icon: Briefcase },
-  { id: "education",  label: "Educación",   icon: GraduationCap },
-  { id: "skills",     label: "Skills",      icon: Wrench },
+  { id: "info",       label: "Info",         icon: User },
+  { id: "experience", label: "Experiencia",  icon: Briefcase },
+  { id: "education",  label: "Educación",    icon: GraduationCap },
+  { id: "skills",     label: "Habilidades",  icon: Sparkles },
 ];
 
 const Field = ({ label, value, onChange, placeholder, type = "text", multiline = false }) => (
@@ -37,7 +37,7 @@ const Field = ({ label, value, onChange, placeholder, type = "text", multiline =
 
 const emptyExp   = () => ({ id: Date.now(),       company: "", role: "", period: "", description: "", responsibilities: [] });
 const emptyEdu   = () => ({ id: Date.now() + 1,   institution: "", degree: "", period: "", description: "" });
-const emptySkill = () => ({ id: Date.now() + 2,   name: "", level: 3, category: "technical", description: "" });
+const emptySkill = () => ({ id: Date.now() + 2,   name: "", level: 3, category: "general", description: "" });
 
 export default function CVEditorPage() {
   const { id } = useParams();
@@ -92,7 +92,7 @@ export default function CVEditorPage() {
         if (d.education?.length)  setEducation(d.education);
         if (d.skills?.length) setSkills(
           d.skills.map((s, i) => typeof s === "string"
-            ? { id: Date.now() + i, name: s, level: 3, category: "technical", description: "" }
+            ? { id: Date.now() + i, name: s, level: 3, category: "general", description: "" }
             : s
           )
         );
@@ -162,7 +162,7 @@ export default function CVEditorPage() {
     if (parsed.skills?.length) {
       setSkills(parsed.skills.map((s, i) =>
         typeof s === "string"
-          ? { id: Date.now() + i, name: s, level: 3, category: "technical", description: "" }
+          ? { id: Date.now() + i, name: s, level: 3, category: "general", description: "" }
           : { id: s.id || Date.now() + i, ...s }
       ));
     } else {
@@ -269,15 +269,15 @@ export default function CVEditorPage() {
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
                   <Field label="Nombre completo" value={info.name}      onChange={v => setInfo(p => ({ ...p, name: v }))}      placeholder="Juan Pérez" />
-                  <Field label="Cargo / Rol"      value={info.role}      onChange={v => setInfo(p => ({ ...p, role: v }))}      placeholder="Full Stack Developer" />
+                  <Field label="Cargo / Profesión" value={info.role}    onChange={v => setInfo(p => ({ ...p, role: v }))}      placeholder="Ej: Auxiliar contable, Vendedor, Enfermera..." />
                   <Field label="Email"            value={info.email}     onChange={v => setInfo(p => ({ ...p, email: v }))}     placeholder="juan@email.com" type="email" />
                   <Field label="Teléfono"         value={info.phone}     onChange={v => setInfo(p => ({ ...p, phone: v }))}     placeholder="+57 300 000 0000" />
                   <Field label="Ciudad / País"    value={info.location}  onChange={v => setInfo(p => ({ ...p, location: v }))}  placeholder="Bogotá, Colombia" />
-                  <Field label="LinkedIn"         value={info.linkedin}  onChange={v => setInfo(p => ({ ...p, linkedin: v }))}  placeholder="linkedin.com/in/juan" />
-                  <Field label="GitHub"           value={info.github    || ""} onChange={v => setInfo(p => ({ ...p, github: v }))}    placeholder="github.com/tuusuario" />
-                  <Field label="Portfolio / Web"  value={info.portfolio || ""} onChange={v => setInfo(p => ({ ...p, portfolio: v }))} placeholder="tuportafolio.com" />
+                  <Field label="LinkedIn (opcional)"        value={info.linkedin}  onChange={v => setInfo(p => ({ ...p, linkedin: v }))}  placeholder="linkedin.com/in/juan" />
+                  <Field label="Sitio web (opcional)"       value={info.github    || ""} onChange={v => setInfo(p => ({ ...p, github: v }))}    placeholder="Solo si tienes uno" />
+                  <Field label="Portafolio o redes (opcional)" value={info.portfolio || ""} onChange={v => setInfo(p => ({ ...p, portfolio: v }))} placeholder="Instagram, behance, web personal..." />
                 </div>
-                <Field label="Perfil profesional" value={info.summary} onChange={v => setInfo(p => ({ ...p, summary: v }))} placeholder="Describe tu perfil en 2-3 oraciones..." multiline />
+                <Field label="Perfil profesional" value={info.summary} onChange={v => setInfo(p => ({ ...p, summary: v }))} placeholder="Describe en 2-3 oraciones quién eres y qué buscas..." multiline />
               </div>
             )}
 
@@ -377,7 +377,7 @@ export default function CVEditorPage() {
                 {skills.map((skill, i) => (
                   <div key={skill.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.82rem", color: "var(--accent)" }}>Skill #{i + 1}</span>
+                      <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 700, fontSize: "0.82rem", color: "var(--accent)" }}>Habilidad #{i + 1}</span>
                       {skills.length > 1 && (
                         <button onClick={() => removeSkill(skill.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, fontSize: "0.75rem", fontFamily: "Syne,sans-serif" }}
                           onMouseEnter={e => e.currentTarget.style.color = "var(--danger)"}
@@ -388,11 +388,11 @@ export default function CVEditorPage() {
                       )}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
-                      <Field label="Nombre" value={skill.name} onChange={v => updateSkill(skill.id, "name", v)} placeholder="React, Liderazgo..." />
+                      <Field label="Nombre" value={skill.name} onChange={v => updateSkill(skill.id, "name", v)} placeholder="Atención al cliente, Excel, Liderazgo..." />
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <label style={{ fontSize: "0.78rem", fontFamily: "Syne,sans-serif", fontWeight: 600, color: "var(--muted)" }}>Categoría</label>
                         <select value={skill.category} onChange={e => updateSkill(skill.id, "category", e.target.value)} style={{ background: "var(--surface-high)", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 14px", color: "var(--text)", fontFamily: "DM Sans,sans-serif", fontSize: "0.88rem", outline: "none" }}>
-                          <option value="technical">Técnica</option>
+                          <option value="general">General</option>
                           <option value="soft">Blanda</option>
                         </select>
                       </div>
@@ -403,7 +403,7 @@ export default function CVEditorPage() {
                       </label>
                       <div style={{ display: "flex", gap: 6 }}>
                         {[1,2,3,4,5].map(n => (
-                          <button key={n} onClick={() => updateSkill(skill.id, "level", n)} style={{ flex: 1, height: 8, borderRadius: 100, border: "none", cursor: "pointer", background: n <= skill.level ? (skill.category === "technical" ? "var(--accent)" : "#C77DFF") : "var(--border)", transition: "background 0.18s" }} />
+                          <button key={n} onClick={() => updateSkill(skill.id, "level", n)} style={{ flex: 1, height: 8, borderRadius: 100, border: "none", cursor: "pointer", background: n <= skill.level ? (skill.category === "general" ? "var(--accent)" : "#C77DFF") : "var(--border)", transition: "background 0.18s" }} />
                         ))}
                       </div>
                     </div>

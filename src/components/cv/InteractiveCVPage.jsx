@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   Download, Globe, Mail, Phone, MapPin, Linkedin, Github,
-  Briefcase, GraduationCap, Wrench, User, Star, Menu, X,
+  Briefcase, GraduationCap, Sparkles, User, Star, Menu, X,
   Zap, ExternalLink, Award, FolderOpen
 } from "lucide-react";
 import ExportModal from "../dashboard/ExportModal";
@@ -61,9 +61,9 @@ const DEMO_CV = {
     { id: 2, institution: "Google / Coursera", degree: "UX Design Certificate", period: "2019", description: "" },
   ],
   skills: [
-    { name: "Figma", level: 5, category: "technical" },
-    { name: "User Research", level: 4, category: "technical" },
-    { name: "React", level: 3, category: "technical" },
+    { name: "Figma", level: 5, category: "general" },
+    { name: "User Research", level: 4, category: "general" },
+    { name: "React", level: 3, category: "general" },
     { name: "Liderazgo", level: 4, category: "soft" },
     { name: "Comunicación", level: 5, category: "soft" },
   ],
@@ -78,7 +78,7 @@ const SECTIONS = [
   { id: "profile",        label: "Perfil",          icon: User },
   { id: "experience",     label: "Experiencia",     icon: Briefcase },
   { id: "education",      label: "Educación",       icon: GraduationCap },
-  { id: "skills",         label: "Habilidades",     icon: Wrench },
+  { id: "skills",         label: "Habilidades",     icon: Sparkles },
   { id: "certifications", label: "Certificaciones", icon: Award },
   { id: "projects",       label: "Proyectos",       icon: FolderOpen },
 ];
@@ -478,18 +478,24 @@ export default function InteractiveCVPage() {
           {activeSection === "skills" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 760 }}>
               <SectionTitle color={T.purple}>Habilidades</SectionTitle>
-              {["technical", "soft"].map(cat => {
-                const filtered = cvData.skills?.filter(s => (s.category === cat) || (!s.category && cat === "technical"));
+              {["general", "soft"].map(cat => {
+                // Acepta "general" (valor nuevo) y "technical" (valor usado antes
+                // de este cambio, para no romper CVs ya guardados con ese nombre).
+                const filtered = cvData.skills?.filter(s =>
+                  cat === "general"
+                    ? (s.category === "general" || s.category === "technical" || !s.category)
+                    : s.category === cat
+                );
                 if (!filtered?.length) return null;
                 return (
                   <div key={cat}>
                     <div style={{ fontSize: "0.7rem", fontFamily: "Syne,sans-serif", fontWeight: 700, color: T.muted, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
-                      {cat === "technical" ? "Técnicas" : "Blandas"}
+                      {cat === "general" ? "Habilidades" : "Blandas"}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 }}>
                       {filtered.map((skill, i) => {
-                        const isTech = cat === "technical";
-                        const color  = isTech ? T.accentBright : T.purple;
+                        const isGeneral = cat === "general";
+                        const color  = isGeneral ? T.accentBright : T.purple;
                         const level  = skill.level || 0;
                         return (
                           <div key={i} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: "16px 18px", transition: "border-color 0.18s" }}
