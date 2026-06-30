@@ -112,7 +112,7 @@ export default async function handler(req) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 2000,
+        max_tokens: 8192,
         messages: [
           {
             role: "user",
@@ -188,11 +188,30 @@ ${text.slice(0, 10000)}`,
     const data = await response.json();
     const raw  = data.content?.[0]?.text || "{}";
 
+    // Si Claude se quedó sin espacio para terminar la respuesta, el JSON
+    // queda cortado a la mitad y JSON.parse va a fallar igual. Detectamos
+    // este caso primero para devolver un mensaje claro en vez de un error genérico.
+    if (data.stop_reason === "max_tokens") {
+      console.error("parse-cv: respuesta truncada por max_tokens");
+      return new Response(
+        JSON.stringify({ error: "El CV es muy extenso y la IA no alcanzó a procesarlo completo. Intenta con un CV más breve o divídelo en secciones." }),
+        { status: 502, headers: { ...corsHeaders(allowedOrigin), "Content-Type": "application/json" } }
+      );
+    }
+
     let parsed;
     try {
       parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    } catch {
+    } catch (e) {
+      console.error("parse-cv: JSON inválido recibido de Anthropic:", e.message, raw.slice(0, 500));
       parsed = null;
+    }
+
+    if (!parsed) {
+      return new Response(
+        JSON.stringify({ error: "La IA no pudo extraer información estructurada de este CV." }),
+        { status: 502, headers: { ...corsHeaders(allowedOrigin), "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(
