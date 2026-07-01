@@ -1,20 +1,71 @@
 // api/parse-cv.js
 export const config = { runtime: "edge" };
 
-const rateMap = new Map();
 const RATE_LIMIT  = 10;
-const RATE_WINDOW = 60000;
+const RATE_WINDOW_SECONDS = 60;
 
-function checkRateLimit(ip) {
+// ── Rate limit en memoria (fallback) ──────────────────────────────────────────
+// Solo se usa si Upstash no está configurado. En Vercel Edge Runtime esto NO
+// es protección real (cada request puede caer en una instancia distinta), pero
+// es mejor que nada mientras configuras Upstash, y evita que el endpoint quede
+// sin ningún control si algún día Upstash cae o no está disponible.
+const rateMapFallback = new Map();
+
+function checkRateLimitInMemory(ip) {
   const now = Date.now();
-  const entry = rateMap.get(ip) || { count: 0, start: now };
-  if (now - entry.start > RATE_WINDOW) {
-    rateMap.set(ip, { count: 1, start: now });
+  const entry = rateMapFallback.get(ip) || { count: 0, start: now };
+  if (now - entry.start > RATE_WINDOW_SECONDS * 1000) {
+    rateMapFallback.set(ip, { count: 1, start: now });
     return true;
   }
   if (entry.count >= RATE_LIMIT) return false;
-  rateMap.set(ip, { count: entry.count + 1, start: entry.start });
+  rateMapFallback.set(ip, { count: entry.count + 1, start: entry.start });
   return true;
+}
+
+// ── Rate limit real con Upstash Redis (REST API, compatible con Edge) ────────
+// Usa INCR + EXPIRE vía la API REST de Upstash. Esto SÍ es compartido entre
+// todas las instancias de la función en cualquier región, a diferencia del
+// Map() en memoria.
+async function checkRateLimitUpstash(ip, url, token) {
+  const key = `parsecv:ratelimit:${ip}`;
+
+  const incrRes = await fetch(`${url}/incr/${encodeURIComponent(key)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!incrRes.ok) throw new Error("UPSTASH_INCR_FAILED");
+  const { result: count } = await incrRes.json();
+
+  // Solo en el primer request de la ventana ponemos el TTL — si ya existía
+  // la key, el TTL anterior sigue corriendo tal cual.
+  if (count === 1) {
+    await fetch(`${url}/expire/${encodeURIComponent(key)}/${RATE_WINDOW_SECONDS}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  return count <= RATE_LIMIT;
+}
+
+// Punto de entrada único: intenta Upstash si está configurado; si falla la
+// llamada a Upstash por cualquier razón (red, credenciales, servicio caído),
+// cae al fallback en memoria en vez de bloquear todas las requests por un
+// problema externo — mejor una protección débil que ninguna.
+async function checkRateLimit(ip) {
+  const upstashUrl   = process.env.UPSTASH_REDIS_REST_URL;
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!upstashUrl || !upstashToken) {
+    console.warn("parse-cv: UPSTASH_REDIS_REST_URL/TOKEN no configurados — usando rate limit en memoria (no es protección real en producción).");
+    return checkRateLimitInMemory(ip);
+  }
+
+  try {
+    return await checkRateLimitUpstash(ip, upstashUrl, upstashToken);
+  } catch (err) {
+    console.error("parse-cv: fallo al consultar Upstash, usando fallback en memoria:", err.message);
+    return checkRateLimitInMemory(ip);
+  }
 }
 
 const ALLOWED_ORIGINS = [
@@ -179,7 +230,8 @@ export default async function handler(req) {
     req.headers.get("cf-connecting-ip") ||
     "unknown";
 
-  if (!checkRateLimit(ip)) {
+  const withinLimit = await checkRateLimit(ip);
+  if (!withinLimit) {
     return new Response(
       JSON.stringify({ error: "Demasiadas solicitudes. Espera un momento e intenta de nuevo." }),
       {
@@ -187,7 +239,7 @@ export default async function handler(req) {
         headers: {
           ...corsHeaders(allowedOrigin),
           "Content-Type": "application/json",
-          "Retry-After": "60",
+          "Retry-After": String(RATE_WINDOW_SECONDS),
         },
       }
     );
