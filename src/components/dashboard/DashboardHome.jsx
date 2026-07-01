@@ -144,10 +144,20 @@ const DashboardHome = () => {
   const handleNewCV = async () => {
     if (!canCreate) return;
     setCreating(true);
-    const { data } = await createCV(user.id, "Mi nuevo CV");
+    setCreateError("");
+    const { data, error: createErr } = await createCV(user.id, "Mi nuevo CV");
     setCreating(false);
     // ✅ navigate() en vez de window.location.href
-    if (data) navigate(`/dashboard/cvs/${data.id}/edit`);
+    if (data) {
+      navigate(`/dashboard/cvs/${data.id}/edit`);
+    } else if (createErr) {
+      const isLimitError = createErr.message?.includes("free_plan_limit_reached");
+      setCreateError(
+        isLimitError
+          ? "Alcanzaste el límite del plan Free (1 CV). Actualiza a Pro para crear más."
+          : createErr.message || "No se pudo crear el CV. Intenta de nuevo."
+      );
+    }
   };
 
   const handleDelete = async (id) => {
@@ -249,7 +259,7 @@ const DashboardHome = () => {
               ✨ Estás en el plan Free
             </div>
             <div style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
-              Sube a Pro: CVs ilimitados, exportación Word, analíticas y sin marca de agua.
+              Sube a Pro: CVs ilimitados, analíticas de visitas y sin marca de agua.
             </div>
           </div>
           <Link

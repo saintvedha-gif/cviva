@@ -10,43 +10,71 @@ import jsPDF from "jspdf";
 // el resultado NO tiene texto seleccionable: un sistema ATS no puede leerlo.
 // Por eso esta función requiere que el elemento de vista previa exista en
 // el DOM (solo pasa dentro del editor, donde se renderiza la preview).
+//
+// FIX (auditoría, punto crítico #1): el contenedor #cv-preview tiene
+// maxHeight + overflowY: auto en CVEditorPage.jsx para poder hacer scroll
+// dentro del editor. html2canvas rasteriza el DOM tal como está, así que
+// si no quitamos ese límite antes de capturar, solo se ve la parte
+// visible/scrolleada del CV en el PDF final. Por eso aquí:
+//   1. Guardamos el maxHeight y overflowY originales del elemento.
+//   2. Los quitamos temporalmente (el navegador entonces renderiza el
+//      CV completo, sin importar cuán largo sea).
+//   3. Capturamos con html2canvas usando windowHeight/height = scrollHeight
+//      para asegurar que el canvas cubra todo el contenido, no solo el
+//      viewport.
+//   4. Restauramos los estilos originales inmediatamente, en un finally,
+//      para que el editor se vea exactamente igual que antes aunque la
+//      exportación falle a mitad de camino.
 export async function exportToPDF(elementId, fileName = "cv.pdf") {
   const el = document.getElementById(elementId);
   if (!el) throw new Error("Element not found");
 
-  const canvas = await html2canvas(el, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: "#080C12",
-    logging: false,
-  });
+  const prevMaxHeight = el.style.maxHeight;
+  const prevOverflowY = el.style.overflowY;
 
-  const imgData = canvas.toDataURL("image/png");
-  const pdf = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-  });
+  try {
+    el.style.maxHeight = "none";
+    el.style.overflowY = "visible";
 
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-  const ratio = canvas.width / canvas.height;
-  const imgH = pageW / ratio;
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#080C12",
+      logging: false,
+      windowHeight: el.scrollHeight,
+      height: el.scrollHeight,
+    });
 
-  let heightLeft = imgH;
-  let position = 0;
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
 
-  pdf.addImage(imgData, "PNG", 0, position, pageW, imgH);
-  heightLeft -= pageH;
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = canvas.width / canvas.height;
+    const imgH = pageW / ratio;
 
-  while (heightLeft > 0) {
-    position = heightLeft - imgH;
-    pdf.addPage();
+    let heightLeft = imgH;
+    let position = 0;
+
     pdf.addImage(imgData, "PNG", 0, position, pageW, imgH);
     heightLeft -= pageH;
-  }
 
-  pdf.save(fileName);
+    while (heightLeft > 0) {
+      position = heightLeft - imgH;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, pageW, imgH);
+      heightLeft -= pageH;
+    }
+
+    pdf.save(fileName);
+  } finally {
+    el.style.maxHeight = prevMaxHeight;
+    el.style.overflowY = prevOverflowY;
+  }
 }
 
 // ── PDF compatible con ATS (texto real) ───────────────────────────────────────

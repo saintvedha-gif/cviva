@@ -9,6 +9,25 @@ import {
 import ExportModal from "../dashboard/ExportModal";
 import { getCVBySlug, incrementCVViews } from "../../lib/supabase";
 
+// Sanitiza una URL antes de usarla en href. Los campos de certificaciones y
+// proyectos vienen del parseo con IA o de edición manual del JSON, sin
+// validar — sin esto, alguien podría guardar "javascript:..." y ejecutar
+// código en el navegador de cualquier visitante que vea ese CV público.
+// Solo se permiten enlaces http(s); todo lo demás se descarta.
+function safeUrl(raw) {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  // Si no trae protocolo, asumimos https (igual que linkedin/github/portfolio)
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(withProtocol);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
 // ── Paleta Ejecutivo Oscuro ──────────────────────────────────────────────────
 const T = {
   bg:          "#0B0F19",
@@ -274,9 +293,9 @@ export default function InteractiveCVPage() {
             {cvData.email    && <ContactRow icon={Mail}     text={cvData.email} />}
             {cvData.phone    && <ContactRow icon={Phone}    text={cvData.phone} />}
             {cvData.location && <ContactRow icon={MapPin}   text={cvData.location} />}
-            {cvData.linkedin && <ContactRow icon={Linkedin} text="LinkedIn"  href={`https://${cvData.linkedin}`}  accent />}
-            {cvData.github   && <ContactRow icon={Github}   text="GitHub"    href={`https://${cvData.github}`}    accent />}
-            {cvData.portfolio && <ContactRow icon={Globe}   text="Portfolio" href={`https://${cvData.portfolio}`} accent />}
+            {cvData.linkedin && <ContactRow icon={Linkedin} text="LinkedIn"  href={safeUrl(cvData.linkedin)}  accent />}
+            {cvData.github   && <ContactRow icon={Github}   text="GitHub"    href={safeUrl(cvData.github)}    accent />}
+            {cvData.portfolio && <ContactRow icon={Globe}   text="Portfolio" href={safeUrl(cvData.portfolio)} accent />}
           </div>
         </aside>
 
@@ -331,18 +350,18 @@ export default function InteractiveCVPage() {
                             <MapPin size={10} /> {cvData.location}
                           </span>
                         )}
-                        {cvData.linkedin && (
-                          <a href={`https://${cvData.linkedin}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, background: T.accentSoft, border: `1px solid ${T.accent}44`, fontSize: "0.72rem", color: T.accentBright, textDecoration: "none" }}>
+                        {cvData.linkedin && safeUrl(cvData.linkedin) && (
+                          <a href={safeUrl(cvData.linkedin)} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, background: T.accentSoft, border: `1px solid ${T.accent}44`, fontSize: "0.72rem", color: T.accentBright, textDecoration: "none" }}>
                             <Linkedin size={10} /> LinkedIn
                           </a>
                         )}
-                        {cvData.github && (
-                          <a href={`https://${cvData.github}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, background: T.surfaceHigh, border: `1px solid ${T.borderLight}`, fontSize: "0.72rem", color: T.muted, textDecoration: "none" }}>
+                        {cvData.github && safeUrl(cvData.github) && (
+                          <a href={safeUrl(cvData.github)} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, background: T.surfaceHigh, border: `1px solid ${T.borderLight}`, fontSize: "0.72rem", color: T.muted, textDecoration: "none" }}>
                             <Github size={10} /> GitHub
                           </a>
                         )}
-                        {cvData.portfolio && (
-                          <a href={`https://${cvData.portfolio}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, background: T.surfaceHigh, border: `1px solid ${T.borderLight}`, fontSize: "0.72rem", color: T.muted, textDecoration: "none" }}>
+                        {cvData.portfolio && safeUrl(cvData.portfolio) && (
+                          <a href={safeUrl(cvData.portfolio)} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, background: T.surfaceHigh, border: `1px solid ${T.borderLight}`, fontSize: "0.72rem", color: T.muted, textDecoration: "none" }}>
                             <Globe size={10} /> Portfolio
                           </a>
                         )}
@@ -549,8 +568,8 @@ export default function InteractiveCVPage() {
                     {cert.period && <div style={{ fontSize: "0.72rem", color: T.muted }}>{cert.period}</div>}
                     {cert.description && <p style={{ fontSize: "0.82rem", color: T.muted, margin: "8px 0 0", lineHeight: 1.6 }}>{cert.description}</p>}
                   </div>
-                  {cert.url && (
-                    <a href={cert.url} target="_blank" rel="noreferrer" style={{ color: T.accentBright, flexShrink: 0 }}>
+                  {cert.url && safeUrl(cert.url) && (
+                    <a href={safeUrl(cert.url)} target="_blank" rel="noreferrer" style={{ color: T.accentBright, flexShrink: 0 }}>
                       <ExternalLink size={15} />
                     </a>
                   )}
@@ -582,8 +601,8 @@ export default function InteractiveCVPage() {
                           ))}
                         </div>
                       )}
-                      {proj.url && (
-                        <a href={proj.url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 14, fontSize: "0.75rem", color, textDecoration: "none", fontFamily: "Syne,sans-serif", fontWeight: 600 }}>
+                      {proj.url && safeUrl(proj.url) && (
+                        <a href={safeUrl(proj.url)} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 14, fontSize: "0.75rem", color, textDecoration: "none", fontFamily: "Syne,sans-serif", fontWeight: 600 }}>
                           <ExternalLink size={12} /> Ver proyecto
                         </a>
                       )}
